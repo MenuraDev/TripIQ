@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const { User, Admin, Driver } = require('../models');
 
 // Generate JWT Token
@@ -9,12 +10,72 @@ const generateToken = (id, role) => {
     });
 };
 
+// Verify reCAPTCHA token
+const verifyRecaptcha = async (token) => {
+    try {
+        const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+        
+        if (!secretKey) {
+            console.error('RECAPTCHA_SECRET_KEY is not configured in environment variables');
+            return { success: false, message: 'reCAPTCHA configuration error' };
+        }
+
+        const response = await axios.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            null,
+            {
+                params: {
+                    secret: secretKey,
+                    response: token
+                }
+            }
+        );
+
+        const { success, score, 'error-codes': errorCodes } = response.data;
+
+        if (!success) {
+            console.error('reCAPTCHA verification failed:', errorCodes);
+            return { 
+                success: false, 
+                message: 'reCAPTCHA verification failed. Please try again.' 
+            };
+        }
+
+        // For v2 checkbox, we check success only (score is for v3)
+        // But if score exists and is very low, we might want to reject
+        if (score !== undefined && score < 0.5) {
+            return { 
+                success: false, 
+                message: 'reCAPTCHA score too low. Please try again.' 
+            };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('reCAPTCHA verification error:', error.message);
+        return { 
+            success: false, 
+            message: 'Unable to verify reCAPTCHA. Please try again.' 
+        };
+    }
+};
+
 // @desc    Register a Tourist or Driver
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
     try {
-        const { role, name, username, email, password, phone, license_no } = req.body;
+        const { role, name, username, email, password, phone, license_no, recaptchaToken } = req.body;
+
+        // Verify reCAPTCHA first
+        if (!recaptchaToken) {
+            return res.status(400).json({ message: 'Please complete the reCAPTCHA verification' });
+        }
+
+        const captchaVerification = await verifyRecaptcha(recaptchaToken);
+        if (!captchaVerification.success) {
+            return res.status(400).json({ message: captchaVerification.message });
+        }
 
         if (!name || !email || !password || !username) {
             return res.status(400).json({ message: 'Please add all required fields (name, username, email, password)' });
@@ -91,7 +152,17 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
     try {
         // For admins/drivers we might use username instead of email, so we accept generic "identifier"
-        const { email, username, password } = req.body;
+        const { email, username, password, recaptchaToken } = req.body;
+
+        // Verify reCAPTCHA first
+        if (!recaptchaToken) {
+            return res.status(400).json({ message: 'Please complete the reCAPTCHA verification' });
+        }
+
+        const captchaVerification = await verifyRecaptcha(recaptchaToken);
+        if (!captchaVerification.success) {
+            return res.status(400).json({ message: captchaVerification.message });
+        }
 
         if (!password || (!email && !username)) {
             return res.status(400).json({ message: 'Please provide credentials' });
@@ -151,4 +222,5 @@ const loginUser = async (req, res) => {
 module.exports = {
     registerUser,
     loginUser,
+    verifyRecaptcha, // Export for testing purposes if needed
 };

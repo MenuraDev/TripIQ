@@ -32,6 +32,8 @@ const styles = `
   .auth-footer a { color: #2d9e4f; font-weight: 600; text-decoration: none; transition: color 0.2s; }
   .auth-footer a:hover { color: #1a6b2e; text-decoration: underline; }
   .error-msg { background: #fee2e2; color: #b91c1c; padding: 12px; border-radius: 12px; font-size: 0.9rem; margin-bottom: 20px; text-align: center; border: 1px solid #fca5a5; }
+  .recaptcha-container { margin: 20px 0; display: flex; justify-content: center; }
+  .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
 `;
 
 export default function RegisterPage() {
@@ -47,8 +49,28 @@ export default function RegisterPage() {
         confirmPassword: ''
     });
     const [error, setError] = useState('');
+    const [recaptchaToken, setRecaptchaToken] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    // Handle reCAPTCHA change
+    const handleRecaptchaChange = (token) => {
+        setRecaptchaToken(token);
+        setError(''); // Clear any previous reCAPTCHA errors
+    };
+
+    // Handle reCAPTCHA expiration
+    const handleRecaptchaExpired = () => {
+        setRecaptchaToken(null);
+        setError('reCAPTCHA expired. Please verify again.');
+    };
+
+    // Handle reCAPTCHA error
+    const handleRecaptchaError = () => {
+        setRecaptchaToken(null);
+        setError('reCAPTCHA verification failed. Please try again.');
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -75,6 +97,13 @@ export default function RegisterPage() {
         if (formData.password.length < 6) return setError("Password must be at least 6 characters long");
         if (formData.password !== formData.confirmPassword) return setError("Passwords do not match");
 
+        // Verify reCAPTCHA
+        if (!recaptchaToken) {
+            setError('Please complete the reCAPTCHA verification');
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
             const res = await fetch('http://localhost:5000/api/auth/register', {
                 method: 'POST',
@@ -86,7 +115,8 @@ export default function RegisterPage() {
                     email: formData.email,
                     phone: formData.phone,
                     license_no: formData.license_no,
-                    password: formData.password
+                    password: formData.password,
+                    recaptchaToken: recaptchaToken,
                 }),
             });
             const data = await res.json();
@@ -100,9 +130,21 @@ export default function RegisterPage() {
                 }
             } else {
                 setError(data.message || 'Registration failed');
+                // Reset reCAPTCHA on failure
+                if (window.grecaptcha) {
+                    window.grecaptcha.reset();
+                }
+                setRecaptchaToken(null);
             }
         } catch (err) {
             setError('Server Error. Please try again.');
+            // Reset reCAPTCHA on error
+            if (window.grecaptcha) {
+                window.grecaptcha.reset();
+            }
+            setRecaptchaToken(null);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -179,8 +221,21 @@ export default function RegisterPage() {
                                 <input type="password" name="confirmPassword" required placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} />
                             </div>
                         </div>
+                        
+                        {/* reCAPTCHA Widget */}
+                        <div className="recaptcha-container">
+                            <div 
+                                className="g-recaptcha" 
+                                data-sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || 'YOUR_SITE_KEY_HERE'}
+                                data-callback={handleRecaptchaChange}
+                                data-expired-callback={handleRecaptchaExpired}
+                                data-error-callback={handleRecaptchaError}
+                            ></div>
+                        </div>
 
-                        <button className="auth-btn" type="submit">Sign Up as {role === 'driver' ? 'Driver' : 'Traveler'}</button>
+                        <button className="auth-btn" type="submit" disabled={isSubmitting || !recaptchaToken}>
+                            {isSubmitting ? 'Creating Account...' : `Sign Up as ${role === 'driver' ? 'Driver' : 'Traveler'}`}
+                        </button>
                     </form>
 
                     <div className="auth-footer">
