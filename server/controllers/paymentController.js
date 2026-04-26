@@ -240,7 +240,7 @@ const deletePayment = async (req, res) => {
 // @desc    Confirm payment success from client (Fallback for local dev)
 // @route   POST /api/payments/confirm
 // @access  Tourist
-const confirmPaymentSuccess = async (req, res) => {
+/*const confirmPaymentSuccess = async (req, res) => {
     try {
         const { booking_id, amount, transaction_id, payment_method } = req.body;
 
@@ -291,7 +291,7 @@ const confirmPaymentSuccess = async (req, res) => {
         console.error('Confirm Payment Error:', error);
         res.status(500).json({ message: 'Error confirming payment', error: error.message });
     }
-};
+}; */
 
 module.exports = {
     generatePaymentHash,
