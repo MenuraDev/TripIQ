@@ -77,7 +77,7 @@ const updateVehicle = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized to update this vehicle' });
         }
 
-        if (price_per_day !== undefined && price_per_day <= 0) {
+        if (price_per_day == null || isNaN(price_per_day) || price_per_day <= 0) {
             return res.status(400).json({ message: "Price per day must be a positive number" });
         }
 
