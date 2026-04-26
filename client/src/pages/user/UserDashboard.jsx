@@ -692,7 +692,7 @@ export default function UserDashboard() {
     const handleDeepLinkEdit = async () => {
       // We need to ensure data (trips) has been fetched or fetch the specific trip
       try {
-        const res = await fetch(`http://localhost:5000/api/trips`, {
+        const res = await fetch(`http://localhost:5007/api/trips`, {
           headers: { Authorization: `Bearer ${user.token}` }
         });
         const allTrips = await res.json();
@@ -717,13 +717,13 @@ export default function UserDashboard() {
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
       const [tripsRes, favsRes, allDestsRes, vehiclesRes, paymentsRes, reviewsRes, profileRes] = await Promise.all([
-        fetch('http://localhost:5000/api/trips', { headers }),
-        fetch('http://localhost:5000/api/destinations/favorites', { headers }),
-        fetch('http://localhost:5000/api/destinations'),
-        fetch('http://localhost:5000/api/vehicles/all'),
-        fetch('http://localhost:5000/api/payments/my', { headers }),
-        fetch('http://localhost:5000/api/reviews/my', { headers }),
-        fetch('http://localhost:5000/api/users/profile', { headers })
+        fetch('http://localhost:5007/api/trips', { headers }),
+        fetch('http://localhost:5007/api/destinations/favorites', { headers }),
+        fetch('http://localhost:5007/api/destinations'),
+        fetch('http://localhost:5007/api/vehicles/all'),
+        fetch('http://localhost:5007/api/payments/my', { headers }),
+        fetch('http://localhost:5007/api/reviews/my', { headers }),
+        fetch('http://localhost:5007/api/users/profile', { headers })
       ]);
 
       const [tripsData, favsData, allDestsData, vehiclesData, paymentsData, reviewsData, profileData] = await Promise.all([
@@ -766,7 +766,7 @@ export default function UserDashboard() {
 
   const handleToggleFavorite = async (destId) => {
     try {
-      await fetch(`http://localhost:5000/api/destinations/${destId}/toggle-favorite`, {
+      await fetch(`http://localhost:5007/api/destinations/${destId}/toggle-favorite`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -789,7 +789,7 @@ export default function UserDashboard() {
   const handleCancelTrip = async (tripId) => {
     if (!window.confirm("Are you sure you want to cancel this trip? This action cannot be undone.")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/trips/${tripId}`, {
+      const res = await fetch(`http://localhost:5007/api/trips/${tripId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -845,7 +845,7 @@ export default function UserDashboard() {
     setAiLoading(true);
     try {
       const diff = Math.ceil((new Date(planParams.endDate) - new Date(planParams.startDate)) / (1000 * 60 * 60 * 24)) + 1;
-      const res = await fetch('http://localhost:5000/api/ai/recommend-places', {
+      const res = await fetch('http://localhost:5007/api/ai/recommend-places', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -876,7 +876,7 @@ export default function UserDashboard() {
     setAiLoading(true);
     try {
       const diff = Math.ceil((new Date(planParams.endDate) - new Date(planParams.startDate)) / (1000 * 60 * 60 * 24)) + 1;
-      const res = await fetch('http://localhost:5000/api/ai/generate-itinerary', {
+      const res = await fetch('http://localhost:5007/api/ai/generate-itinerary', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -920,7 +920,7 @@ export default function UserDashboard() {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/users/profile', {
+      const res = await fetch('http://localhost:5007/api/users/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -952,7 +952,7 @@ export default function UserDashboard() {
     formData.append('profileImage', file);
 
     try {
-      const res = await fetch('http://localhost:5000/api/upload/profile', {
+      const res = await fetch('http://localhost:5007/api/upload/profile', {
         method: 'POST',
         headers: { Authorization: `Bearer ${user.token}` },
         body: formData
@@ -962,7 +962,7 @@ export default function UserDashboard() {
         setProfileFormData({ ...profileFormData, profile_image: data.imageUrl });
         // Also update immediately if not in edit mode
         if (!isEditingProfile) {
-          await fetch('http://localhost:5000/api/users/profile', {
+          await fetch('http://localhost:5007/api/users/profile', {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -985,7 +985,7 @@ export default function UserDashboard() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5000/api/users/profile', {
+      const res = await fetch('http://localhost:5007/api/users/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1005,7 +1005,7 @@ export default function UserDashboard() {
   const handleDeleteAccount = async () => {
     if (!window.confirm("CRITICAL: Are you sure you want to delete your SurangaTours account? This cannot be undone.")) return;
     try {
-      const res = await fetch('http://localhost:5000/api/users/profile', {
+      const res = await fetch('http://localhost:5007/api/users/profile', {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -1029,7 +1029,7 @@ export default function UserDashboard() {
         visit_order: idx + 1
       })).filter(p => p.destination_id);
 
-      const tripUrl = editingTripId ? `http://localhost:5000/api/trips/${editingTripId}` : 'http://localhost:5000/api/trips';
+      const tripUrl = editingTripId ? `http://localhost:5007/api/trips/${editingTripId}` : 'http://localhost:5007/api/trips';
       const tripRes = await fetch(tripUrl, {
         method: editingTripId ? 'PUT' : 'POST',
         headers: {
@@ -1051,7 +1051,7 @@ export default function UserDashboard() {
 
       // 2. Create Booking (If new or needed)
       if (selectedVehicle && !editingTripId) {
-        await fetch('http://localhost:5000/api/bookings', {
+        await fetch('http://localhost:5007/api/bookings', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1079,7 +1079,7 @@ export default function UserDashboard() {
   const handleDeleteDraft = async (id) => {
     if (!window.confirm("Are you sure you want to delete this payment draft?")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/payments/${id}`, {
+      const res = await fetch(`http://localhost:5007/api/payments/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -1095,7 +1095,7 @@ export default function UserDashboard() {
 
   const fetchMyReviews = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/reviews/my', {
+      const res = await fetch('http://localhost:5007/api/reviews/my', {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.ok) setMyReviews(await res.json());
@@ -1114,8 +1114,8 @@ export default function UserDashboard() {
       };
 
       const url = editingReviewId
-        ? `http://localhost:5000/api/reviews/${editingReviewId}`
-        : 'http://localhost:5000/api/reviews';
+        ? `http://localhost:5007/api/reviews/${editingReviewId}`
+        : 'http://localhost:5007/api/reviews';
       const method = editingReviewId ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -1144,7 +1144,7 @@ export default function UserDashboard() {
   const handleDeleteReview = async (id) => {
     if (!window.confirm("Are you sure you want to delete this review?")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/reviews/${id}`, {
+      const res = await fetch(`http://localhost:5007/api/reviews/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -1265,7 +1265,7 @@ export default function UserDashboard() {
             <button className="btn-white" onClick={() => setActiveTab('My Trips')}>View My Route</button>
           </div>
           <img
-            src={upcomingTrips[0].Destinations?.[0]?.image_url ? `http://localhost:5000${upcomingTrips[0].Destinations[0].image_url}` : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&auto=format&fit=crop"}
+            src={upcomingTrips[0].Destinations?.[0]?.image_url ? `http://localhost:5007${upcomingTrips[0].Destinations[0].image_url}` : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&auto=format&fit=crop"}
             className="asymmetric-img"
             alt="Trip"
           />
@@ -1318,7 +1318,7 @@ export default function UserDashboard() {
             <div key={trip.id} className="trip-item">
               <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', flexShrink: 0 }}>
                 <img
-                  src={trip.Destinations?.[0]?.image_url ? `http://localhost:5000${trip.Destinations[0].image_url}` : "https://via.placeholder.com/120"}
+                  src={trip.Destinations?.[0]?.image_url ? `http://localhost:5007${trip.Destinations[0].image_url}` : "https://via.placeholder.com/120"}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   alt=""
                 />
@@ -1447,7 +1447,7 @@ export default function UserDashboard() {
                 {trip.Destinations && trip.Destinations.length > 0 ? trip.Destinations.map((dest, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '24px', paddingBottom: '24px', borderBottom: i < trip.Destinations.length - 1 ? '1px solid var(--surface-container)' : 'none' }}>
                     <div style={{ width: '80px', height: '80px', borderRadius: '16px', overflow: 'hidden', background: '#F3F4F6' }}>
-                      <img src={dest.image_url ? `http://localhost:5000${dest.image_url}` : 'https://via.placeholder.com/80'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={dest.name} />
+                      <img src={dest.image_url ? `http://localhost:5007${dest.image_url}` : 'https://via.placeholder.com/80'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={dest.name} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '4px' }}>{dest.name}</h4>
@@ -1482,7 +1482,7 @@ export default function UserDashboard() {
               {trip.Booking && trip.Booking.Vehicle ? (
                 <div style={{ border: '1px solid var(--surface-container)', borderRadius: '24px', padding: '16px' }}>
                   <div style={{ width: '100%', height: '140px', borderRadius: '16px', overflow: 'hidden', background: '#F3F4F6', marginBottom: '16px' }}>
-                    <img src={trip.Booking.Vehicle.image_url ? `http://localhost:5000${trip.Booking.Vehicle.image_url}` : 'https://via.placeholder.com/200'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={trip.Booking.Vehicle.type} />
+                    <img src={trip.Booking.Vehicle.image_url ? `http://localhost:5007${trip.Booking.Vehicle.image_url}` : 'https://via.placeholder.com/200'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={trip.Booking.Vehicle.type} />
                   </div>
                   <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{trip.Booking.Vehicle.type}</h4>
                   <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>Capacity: {trip.Booking.Vehicle.capacity} Passengers</p>
@@ -1551,7 +1551,7 @@ export default function UserDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '32px' }}>
         {favorites.length > 0 ? favorites.map(dest => (
           <div key={dest.id} className="dest-card" style={{ height: '300px' }}>
-            <img src={dest.image_url ? `http://localhost:5000${dest.image_url}` : "https://via.placeholder.com/400"} className="dest-img" alt={dest.name} />
+            <img src={dest.image_url ? `http://localhost:5007${dest.image_url}` : "https://via.placeholder.com/400"} className="dest-img" alt={dest.name} />
             <div className="dest-overlay">
               <button
                 onClick={() => handleToggleFavorite(dest.id)}
@@ -1603,7 +1603,7 @@ export default function UserDashboard() {
               <div key={draft.id} style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid var(--outline-variant)', position: 'relative', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                 {draft.Booking?.Vehicle?.image_url ? (
                   <div style={{ height: '160px', margin: '-32px -32px 24px -32px', borderRadius: '32px 32px 0 0', overflow: 'hidden', background: '#F3F4F6', position: 'relative' }}>
-                    <img src={`http://localhost:5000${draft.Booking.Vehicle.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vehicle" />
+                    <img src={`http://localhost:5007${draft.Booking.Vehicle.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vehicle" />
                     <div style={{ position: 'absolute', top: '20px', left: '20px', padding: '6px 16px', background: 'rgba(254, 243, 199, 0.9)', color: '#92400E', borderRadius: '50px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', backdropFilter: 'blur(4px)' }}>
                       {draft.status}
                     </div>
@@ -2052,7 +2052,7 @@ export default function UserDashboard() {
                     <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                       <div style={{ width: '160px', height: '110px', borderRadius: '16px', overflow: 'hidden', flexShrink: 0 }}>
                         <img
-                          src={vehicle.image_url ? `http://localhost:5000${vehicle.image_url}` : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400"}
+                          src={vehicle.image_url ? `http://localhost:5007${vehicle.image_url}` : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400"}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           alt={vehicle.type}
                         />
@@ -2225,7 +2225,7 @@ export default function UserDashboard() {
                 justifyContent: 'center'
               }}>
                 {profileFormData.profile_image ? (
-                  <img src={`http://localhost:5000${profileFormData.profile_image}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={`http://localhost:5007${profileFormData.profile_image}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: 'var(--primary)' }}>person</span>
                 )}
@@ -2435,7 +2435,7 @@ export default function UserDashboard() {
             </div>
 
             <img
-              src={user.profile_image ? `http://localhost:5000${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.name || 'U') + "&background=1a6b2e&color=fff"}
+              src={user.profile_image ? `http://localhost:5007${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.name || 'U') + "&background=1a6b2e&color=fff"}
               alt="Profile"
               style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 12px rgba(26,107,46,0.15)', cursor: 'pointer' }}
               onClick={() => setActiveTab('Profile')}
@@ -2477,7 +2477,7 @@ export default function UserDashboard() {
                 .filter(d => !Array.isArray(favorites) || !favorites.some(f => f.id === d.id))
                 .map(dest => (
                   <div key={dest.id} className="dest-card" style={{ height: '220px' }}>
-                    <img src={dest.image_url ? `http://localhost:5000${dest.image_url}` : "https://via.placeholder.com/300"} className="dest-img" alt={dest.name} />
+                    <img src={dest.image_url ? `http://localhost:5007${dest.image_url}` : "https://via.placeholder.com/300"} className="dest-img" alt={dest.name} />
                     <div className="dest-overlay">
                       <button
                         onClick={() => handleToggleFavorite(dest.id)}

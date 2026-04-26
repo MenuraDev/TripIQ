@@ -227,7 +227,7 @@ export default function App() {
     }
 
     // Load Public Reviews
-    fetch('http://localhost:5000/api/reviews/public')
+    fetch('http://localhost:5007/api/reviews/public')
       .then(res => res.json())
       .then(data => setPublicReviews(Array.isArray(data) ? data : []))
       .catch(console.error);
@@ -404,7 +404,7 @@ export default function App() {
               <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
                 <div style={{ position: "relative" }}>
                   <img
-                    src={user.profile_image ? `http://localhost:5000${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.name || user.username || 'U') + "&background=1a6b2e&color=fff"}
+                    src={user.profile_image ? `http://localhost:5007${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.name || user.username || 'U') + "&background=1a6b2e&color=fff"}
                     alt="Profile"
                     style={{ width: "42px", height: "42px", borderRadius: "50%", objectFit: "cover", border: "2px solid #fff", boxShadow: "0 4px 12px rgba(26,107,46,0.15)", cursor: "pointer" }}
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
@@ -677,7 +677,7 @@ export default function App() {
                       <div style={{ display: "flex", alignItems: "center", gap: 12, borderTop: "1px solid #f0f7f0", paddingTop: 16 }}>
                         <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #1a6b2e, #2d9e4f)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 16, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", overflow: "hidden" }}>
                           {r.User?.profile_image ? (
-                            <img src={`http://localhost:5000${r.User.profile_image}`} alt={r.User.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={`http://localhost:5007${r.User.profile_image}`} alt={r.User.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
                             r.User?.name?.charAt(0).toUpperCase() || 'U'
                           )}

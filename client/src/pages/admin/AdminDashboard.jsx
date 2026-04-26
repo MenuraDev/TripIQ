@@ -570,7 +570,7 @@ export default function AdminDashboard() {
         if (!user.token) return;
 
         // Ensure profile data is fresh
-        fetch('http://localhost:5000/api/admin/profile', {
+        fetch('http://localhost:5007/api/admin/profile', {
             headers: { Authorization: `Bearer ${user.token}` }
         })
             .then(res => res.json())
@@ -596,26 +596,26 @@ export default function AdminDashboard() {
         const headers = { Authorization: `Bearer ${user.token}` };
 
         if (activeTab === 'Manage Admins') {
-            fetch('http://localhost:5000/api/admin/admins', { headers })
+            fetch('http://localhost:5007/api/admin/admins', { headers })
                 .then(res => res.json()).then(data => setAdminsList(Array.isArray(data) ? data : []));
         } else if (activeTab === 'Manage Users') {
-            fetch('http://localhost:5000/api/admin/users', { headers })
+            fetch('http://localhost:5007/api/admin/users', { headers })
                 .then(res => res.json()).then(data => setUsersList(Array.isArray(data) ? data : []));
         } else if (activeTab === 'Manage Drivers') {
-            fetch('http://localhost:5000/api/admin/drivers', { headers })
+            fetch('http://localhost:5007/api/admin/drivers', { headers })
                 .then(res => res.json()).then(data => setDriversList(Array.isArray(data) ? data : []));
         } else if (activeTab === 'Destinations') {
-            fetch('http://localhost:5000/api/destinations', { headers })
+            fetch('http://localhost:5007/api/destinations', { headers })
                 .then(res => res.json()).then(data => setDestinationsList(Array.isArray(data) ? data : []));
         } else if (activeTab === 'Reviews' || activeTab === 'Control Panel') {
-            fetch('http://localhost:5000/api/reviews', { headers })
+            fetch('http://localhost:5007/api/reviews', { headers })
                 .then(res => res.json())
                 .then(data => setReviewsList(Array.isArray(data) ? data : []))
                 .catch(console.error);
         }
 
         if (activeTab === 'Transactions' || activeTab === 'Control Panel') {
-            fetch('http://localhost:5000/api/payments', { headers })
+            fetch('http://localhost:5007/api/payments', { headers })
                 .then(res => res.json())
                 .then(data => setPaymentsList(Array.isArray(data) ? data : []))
                 .catch(console.error);
@@ -624,7 +624,7 @@ export default function AdminDashboard() {
 
     const handleModerateReview = async (id, status) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/reviews/${id}/moderate`, {
+            const res = await fetch(`http://localhost:5007/api/reviews/${id}/moderate`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
                 body: JSON.stringify({ status })
@@ -646,10 +646,10 @@ export default function AdminDashboard() {
 
         try {
             const url = type === 'destination'
-                ? `http://localhost:5000/api/destinations/${id}`
+                ? `http://localhost:5007/api/destinations/${id}`
                 : type === 'review'
-                    ? `http://localhost:5000/api/reviews/${id}`
-                    : `http://localhost:5000/api/admin/${type}s/${id}`;
+                    ? `http://localhost:5007/api/reviews/${id}`
+                    : `http://localhost:5007/api/admin/${type}s/${id}`;
 
             const res = await fetch(url, {
                 method: 'DELETE',
@@ -688,7 +688,7 @@ export default function AdminDashboard() {
                 const formData = new FormData();
                 formData.append('destImage', destImageFile);
 
-                const uploadRes = await fetch('http://localhost:5000/api/upload/destination', {
+                const uploadRes = await fetch('http://localhost:5007/api/upload/destination', {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${user.token}` },
                     body: formData
@@ -703,8 +703,8 @@ export default function AdminDashboard() {
             }
 
             const url = editingDestinationId
-                ? `http://localhost:5000/api/destinations/${editingDestinationId}`
-                : 'http://localhost:5000/api/destinations';
+                ? `http://localhost:5007/api/destinations/${editingDestinationId}`
+                : 'http://localhost:5007/api/destinations';
 
             const method = editingDestinationId ? 'PUT' : 'POST';
 
@@ -772,7 +772,7 @@ export default function AdminDashboard() {
         if (!window.confirm("Are you absolutely sure you want to permanently delete your admin account? This action cannot be undone.")) return;
 
         try {
-            const res = await fetch('http://localhost:5000/api/admin/profile', {
+            const res = await fetch('http://localhost:5007/api/admin/profile', {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user.token}` }
             });
@@ -801,7 +801,7 @@ export default function AdminDashboard() {
         }
 
         try {
-            const res = await fetch('http://localhost:5000/api/admin/profile', {
+            const res = await fetch('http://localhost:5007/api/admin/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
                 body: JSON.stringify(profileData)
@@ -832,7 +832,7 @@ export default function AdminDashboard() {
         formData.append('profileImage', file);
 
         try {
-            const res = await fetch('http://localhost:5000/api/upload/profile', {
+            const res = await fetch('http://localhost:5007/api/upload/profile', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${user.token}` },
                 body: formData
@@ -842,7 +842,7 @@ export default function AdminDashboard() {
                 setProfileData({ ...profileData, profile_image: data.imageUrl });
                 // If not in edit mode, update immediately
                 if (!isEditingProfile) {
-                    await fetch('http://localhost:5000/api/admin/profile', {
+                    await fetch('http://localhost:5007/api/admin/profile', {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -851,7 +851,7 @@ export default function AdminDashboard() {
                         body: JSON.stringify({ profile_image: data.imageUrl })
                     });
                     // Refresh data
-                    const profileRes = await fetch('http://localhost:5000/api/admin/profile', {
+                    const profileRes = await fetch('http://localhost:5007/api/admin/profile', {
                         headers: { Authorization: `Bearer ${user.token}` }
                     });
                     const profileData = await profileRes.json();
@@ -904,8 +904,8 @@ export default function AdminDashboard() {
 
         try {
             const url = editingAdminId
-                ? `http://localhost:5000/api/admin/admins/${editingAdminId}`
-                : 'http://localhost:5000/api/admin/admins';
+                ? `http://localhost:5007/api/admin/admins/${editingAdminId}`
+                : 'http://localhost:5007/api/admin/admins';
 
             const method = editingAdminId ? 'PUT' : 'POST';
 
@@ -999,7 +999,7 @@ export default function AdminDashboard() {
                                         justifyContent: 'center'
                                     }}>
                                         {profileData.profile_image ? (
-                                            <img src={`http://localhost:5000${profileData.profile_image}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={`http://localhost:5007${profileData.profile_image}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
                                             <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: 'var(--primary)' }}>person_filled</span>
                                         )}
@@ -1641,7 +1641,7 @@ export default function AdminDashboard() {
                                                                     <button type="button" className="remove-img-btn" onClick={(e) => { e.stopPropagation(); setDestImageFile(null); setDestImagePreview(''); setNewDestination({ ...newDestination, image_url: '' }); }}>
                                                                         <span className="material-symbols-outlined">delete</span>
                                                                     </button>
-                                                                    <img src={destImagePreview || `http://localhost:5000${newDestination.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
+                                                                    <img src={destImagePreview || `http://localhost:5007${newDestination.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
                                                                 </>
                                                             ) : (
                                                                 <div style={{ pointerEvents: 'none', textAlign: 'center', padding: '0 20px' }}>
@@ -1748,7 +1748,7 @@ export default function AdminDashboard() {
                                     {filteredDestinations.map(d => (
                                         <tr key={d.id}>
                                             <td>
-                                                <div style={{ width: '100px', height: '64px', borderRadius: '12px', background: d.image_url ? `url(http://localhost:5000${d.image_url})` : 'var(--surface-container-high)', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--outline-variant)' }} />
+                                                <div style={{ width: '100px', height: '64px', borderRadius: '12px', background: d.image_url ? `url(http://localhost:5007${d.image_url})` : 'var(--surface-container-high)', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--outline-variant)' }} />
                                             </td>
                                             <td style={{ textAlign: 'left' }}>
                                                 <div style={{ fontWeight: 700, color: '#0f2318' }}>{d.name}</div>
@@ -1975,7 +1975,7 @@ export default function AdminDashboard() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'flex-end' }}>
 
                             <img
-                                src={profileData.profile_image ? `http://localhost:5000${profileData.profile_image}` : (user.profile_image ? `http://localhost:5000${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.username || 'A') + "&background=1a6b2e&color=fff")}
+                                src={profileData.profile_image ? `http://localhost:5007${profileData.profile_image}` : (user.profile_image ? `http://localhost:5007${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.username || 'A') + "&background=1a6b2e&color=fff")}
                                 alt="Profile"
                                 style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 12px rgba(26,107,46,0.15)', cursor: 'pointer' }}
                                 onClick={() => setActiveTab('Profile')}

@@ -68,7 +68,7 @@ export default function PaymentCenter() {
                 // Fetch current booking/payment portal data
                 // Fetch current booking data directly
                 if (bookingId) {
-                    const bookingRes = await fetch(`http://localhost:5000/api/bookings/${bookingId}`, {
+                    const bookingRes = await fetch(`http://localhost:5007/api/bookings/${bookingId}`, {
                         headers: { Authorization: `Bearer ${storedUser.token}` }
                     });
                     if (bookingRes.ok) {
@@ -80,7 +80,7 @@ export default function PaymentCenter() {
                     }
 
                     // Also fetch payment records to see if a draft exists for this booking
-                    const paymentsRes = await fetch(`http://localhost:5000/api/payments/my`, {
+                    const paymentsRes = await fetch(`http://localhost:5007/api/payments/my`, {
                         headers: { Authorization: `Bearer ${storedUser.token}` }
                     });
                     const allPayments = await paymentsRes.json();
@@ -96,7 +96,7 @@ export default function PaymentCenter() {
                 }
 
                 // Fetch Drafts and Transactions for other tabs
-                const resAll = await fetch('http://localhost:5000/api/payments/my', {
+                const resAll = await fetch('http://localhost:5007/api/payments/my', {
                     headers: { Authorization: `Bearer ${storedUser.token}` }
                 });
                 const payments = await resAll.json();
@@ -131,7 +131,7 @@ export default function PaymentCenter() {
         if (!paymentRecord) return;
         try {
             const selectedIds = addons.filter(a => a.selected).map(a => a.id);
-            const res = await fetch(`http://localhost:5000/api/payments/${paymentRecord.id}`, {
+            const res = await fetch(`http://localhost:5007/api/payments/${paymentRecord.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${storedUser.token}` },
                 body: JSON.stringify({
@@ -142,7 +142,7 @@ export default function PaymentCenter() {
             if (res.ok) {
                 alert("Draft saved successfully!");
                 // Refresh saved drafts list
-                const resAll = await fetch('http://localhost:5000/api/payments/my', {
+                const resAll = await fetch('http://localhost:5007/api/payments/my', {
                     headers: { Authorization: `Bearer ${storedUser.token}` }
                 });
                 const payments = await resAll.json();
@@ -156,7 +156,7 @@ export default function PaymentCenter() {
     const handleConfirmAndPay = async () => {
         setIsProcessing(true);
         try {
-            const hashResponse = await fetch('http://localhost:5000/api/payments/hash', {
+            const hashResponse = await fetch('http://localhost:5007/api/payments/hash', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${storedUser.token}` },
                 body: JSON.stringify({
@@ -173,7 +173,7 @@ export default function PaymentCenter() {
             payhere.onCompleted = async function onCompleted(orderId) {
                 try {
                     // Notify backend of success directly from client (fallback for local dev)
-                    await fetch('http://localhost:5000/api/payments/confirm', {
+                    await fetch('http://localhost:5007/api/payments/confirm', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export default function PaymentCenter() {
                 merchant_id: hashData.merchant_id,
                 return_url: 'http://localhost:3000/user-dashboard',
                 cancel_url: 'http://localhost:3000/user-dashboard',
-                notify_url: 'http://localhost:5000/api/payments/notify',
+                notify_url: 'http://localhost:5007/api/payments/notify',
                 order_id: `BOOKING_${bookingId}`,
                 items: `Trip Payment - Booking ${bookingId}`,
                 amount: hashData.formattedAmount,
@@ -232,7 +232,7 @@ export default function PaymentCenter() {
     const handleDeleteDraft = async (id) => {
         if (!window.confirm("Delete this draft?")) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/payments/${id}`, {
+            const res = await fetch(`http://localhost:5007/api/payments/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${storedUser.token}` }
             });
@@ -312,7 +312,7 @@ export default function PaymentCenter() {
                                         <div className="info-block" style={{ padding: '0', overflow: 'hidden', background: 'white', border: '1px solid #E5E7EB' }}>
                                             <div style={{ width: '150px', height: '100px', background: '#F3F4F6' }}>
                                                 {bookingDetails.Vehicle?.image_url ? (
-                                                    <img src={`http://localhost:5000${bookingDetails.Vehicle.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vehicle" />
+                                                    <img src={`http://localhost:5007${bookingDetails.Vehicle.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vehicle" />
                                                 ) : (
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9CA3AF' }}>No Image</div>
                                                 )}
@@ -424,7 +424,7 @@ export default function PaymentCenter() {
                                         <div key={draft.id} style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #E5E7EB', position: 'relative', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                                             {draft.Booking?.Vehicle?.image_url ? (
                                                 <div style={{ height: '160px', margin: '-32px -32px 24px -32px', borderRadius: '32px 32px 0 0', overflow: 'hidden', background: '#F3F4F6', position: 'relative' }}>
-                                                    <img src={`http://localhost:5000${draft.Booking.Vehicle.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vehicle" />
+                                                    <img src={`http://localhost:5007${draft.Booking.Vehicle.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vehicle" />
                                                     <div style={{ position: 'absolute', top: '20px', left: '20px', padding: '6px 16px', background: 'rgba(254, 243, 199, 0.9)', color: '#92400E', borderRadius: '50px', fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', backdropFilter: 'blur(4px)' }}>
                                                         {draft.status}
                                                     </div>

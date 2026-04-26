@@ -10,7 +10,7 @@ const DestinationsPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetch('http://localhost:5000/api/destinations')
+        fetch('http://localhost:5007/api/destinations')
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {

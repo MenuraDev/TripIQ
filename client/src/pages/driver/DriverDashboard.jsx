@@ -808,7 +808,7 @@ export default function DriverDashboard() {
 
     React.useEffect(() => {
         if (user.token) {
-            fetch('http://localhost:5000/api/drivers/profile', {
+            fetch('http://localhost:5007/api/drivers/profile', {
                 headers: { Authorization: `Bearer ${user.token}` }
             })
                 .then(res => res.json())
@@ -829,14 +829,14 @@ export default function DriverDashboard() {
         const headers = { Authorization: `Bearer ${user.token}` };
 
         if (activeTab === 'Vehicles' || activeTab === 'Dashboard') {
-            fetch('http://localhost:5000/api/vehicles', { headers })
+            fetch('http://localhost:5007/api/vehicles', { headers })
                 .then(res => res.json())
                 .then(data => setVehiclesList(Array.isArray(data) ? data : []))
                 .catch(console.error);
         }
 
         if (activeTab === 'Assigned Trips' || activeTab === 'Dashboard') {
-            fetch('http://localhost:5000/api/bookings/my', { headers })
+            fetch('http://localhost:5007/api/bookings/my', { headers })
                 .then(res => {
                     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                     return res.json();
@@ -850,7 +850,7 @@ export default function DriverDashboard() {
 
         if (activeTab === 'My Reviews') {
             if (user.id) {
-                fetch(`http://localhost:5000/api/reviews/driver/${user.id}`, { headers })
+                fetch(`http://localhost:5007/api/reviews/driver/${user.id}`, { headers })
                     .then(res => res.json())
                     .then(data => setReviewsList(Array.isArray(data) ? data : []))
                     .catch(console.error);
@@ -880,7 +880,7 @@ export default function DriverDashboard() {
         formData.append('vehicleImage', file);
 
         try {
-            const res = await fetch('http://localhost:5000/api/upload/vehicle', {
+            const res = await fetch('http://localhost:5007/api/upload/vehicle', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${user.token}` },
                 body: formData
@@ -942,7 +942,7 @@ export default function DriverDashboard() {
         }
 
         try {
-            const res = await fetch('http://localhost:5000/api/drivers/profile', {
+            const res = await fetch('http://localhost:5007/api/drivers/profile', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -983,7 +983,7 @@ export default function DriverDashboard() {
         formData.append('profileImage', file);
 
         try {
-            const res = await fetch('http://localhost:5000/api/upload/profile', {
+            const res = await fetch('http://localhost:5007/api/upload/profile', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${user.token}` },
                 body: formData
@@ -992,7 +992,7 @@ export default function DriverDashboard() {
             if (res.ok) {
                 setProfileData({ ...profileData, profile_image: data.imageUrl });
                 if (!isEditingProfile) {
-                    await fetch('http://localhost:5000/api/drivers/profile', {
+                    await fetch('http://localhost:5007/api/drivers/profile', {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1016,7 +1016,7 @@ export default function DriverDashboard() {
         if (!window.confirm("CRITICAL WARNING: This will permanently delete your driver account and all your registered vehicles. This action cannot be undone. Are you sure?")) return;
 
         try {
-            const res = await fetch('http://localhost:5000/api/drivers/profile', {
+            const res = await fetch('http://localhost:5007/api/drivers/profile', {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user.token}` }
             });
@@ -1034,7 +1034,7 @@ export default function DriverDashboard() {
     const handleAddVehicle = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:5000/api/vehicles', {
+            const res = await fetch('http://localhost:5007/api/vehicles', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
                 body: JSON.stringify(newVehicle)
@@ -1057,7 +1057,7 @@ export default function DriverDashboard() {
     const handleUpdateVehicle = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`http://localhost:5000/api/vehicles/${isEditing.id}`, {
+            const res = await fetch(`http://localhost:5007/api/vehicles/${isEditing.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
                 body: JSON.stringify(isEditing)
@@ -1080,7 +1080,7 @@ export default function DriverDashboard() {
     const handleDeleteVehicle = async (id) => {
         if (!window.confirm("Are you sure you want to remove this vehicle?")) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/vehicles/${id}`, {
+            const res = await fetch(`http://localhost:5007/api/vehicles/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${user.token}` }
             });
@@ -1094,13 +1094,13 @@ export default function DriverDashboard() {
 
     const startEdit = (vehicle) => {
         setIsEditing(vehicle);
-        setImagePreview(vehicle.image_url ? `http://localhost:5000${vehicle.image_url}` : null);
+        setImagePreview(vehicle.image_url ? `http://localhost:5007${vehicle.image_url}` : null);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleUpdateBookingStatus = async (bookingId, newStatus) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/bookings/${bookingId}/status`, {
+            const res = await fetch(`http://localhost:5007/api/bookings/${bookingId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
                 body: JSON.stringify({ status: newStatus })
@@ -1224,7 +1224,7 @@ export default function DriverDashboard() {
                                         position: 'relative'
                                     }}>
                                         {user.profile_image ? (
-                                            <img src={`http://localhost:5000${user.profile_image}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={`http://localhost:5007${user.profile_image}`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
                                             user.name?.charAt(0) || 'D'
                                         )}
@@ -1568,7 +1568,7 @@ export default function DriverDashboard() {
                             <div key={vehicle.id} className="v-card">
                                 <div className="v-image-container">
                                     {vehicle.image_url ? (
-                                        <img src={`http://localhost:5000${vehicle.image_url}`} alt={vehicle.type} className="v-img" />
+                                        <img src={`http://localhost:5007${vehicle.image_url}`} alt={vehicle.type} className="v-img" />
                                     ) : (
                                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--outline-variant)', fontSize: '4rem' }}>
                                             <span className="material-symbols-outlined" style={{ fontSize: '64px' }}>directions_car</span>
@@ -1845,7 +1845,7 @@ export default function DriverDashboard() {
                         </div>
 
                         <img
-                            src={user.profile_image ? `http://localhost:5000${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.name || 'D') + "&background=1a6b2e&color=fff"}
+                            src={user.profile_image ? `http://localhost:5007${user.profile_image}` : "https://ui-avatars.com/api/?name=" + (user.name || 'D') + "&background=1a6b2e&color=fff"}
                             alt="Profile"
                             style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', boxShadow: '0 4px 12px rgba(26,107,46,0.15)', cursor: 'pointer' }}
                             onClick={() => setActiveTab('Profile')}
