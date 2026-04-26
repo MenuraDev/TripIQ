@@ -67,6 +67,10 @@ const updateVehicle = async (req, res) => {
     try {
         const { type, capacity, price_per_day, status, condition, image_url } = req.body;
 
+        if (isNaN(req.params.id)) {
+            return res.status(400).json({ message: "Invalid vehicle ID" });
+        }
+        
         const vehicle = await Vehicle.findByPk(req.params.id);
 
         if (!vehicle) {
