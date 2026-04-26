@@ -35,7 +35,32 @@ const Destination = sequelize.define('Destination', {
     image_url: {
         type: DataTypes.STRING(500),
         allowNull: true,
-    }
+    },
+    // ML/cluster enrichment fields (populated by seed script)
+    province: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    cluster_name: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    cluster_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    rating: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    terrain_type: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    time_needed_hours: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
 }, {
     tableName: 'destinations',
     timestamps: true,
