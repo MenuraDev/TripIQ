@@ -152,7 +152,7 @@ const getMyPayments = async (req, res) => {
 // @desc    Get single payment detail
 // @route   GET /api/payments/:id
 // @access  Tourist
-const getPaymentDetails = async (req, res) => {
+/*const getPaymentDetails = async (req, res) => {
     try {
         const payment = await Payment.findByPk(req.params.id, {
             include: [
@@ -176,6 +176,7 @@ const getPaymentDetails = async (req, res) => {
         res.status(500).json({ message: 'Error fetching payment detail', error: error.message });
     }
 };
+*/
 
 // @desc    Update payment status or add-ons (Save as Draft method)
 // @route   PUT /api/payments/:id
@@ -240,7 +241,7 @@ const deletePayment = async (req, res) => {
 // @desc    Confirm payment success from client (Fallback for local dev)
 // @route   POST /api/payments/confirm
 // @access  Tourist
-/*const confirmPaymentSuccess = async (req, res) => {
+const confirmPaymentSuccess = async (req, res) => {
     try {
         const { booking_id, amount, transaction_id, payment_method } = req.body;
 
@@ -291,7 +292,7 @@ const deletePayment = async (req, res) => {
         console.error('Confirm Payment Error:', error);
         res.status(500).json({ message: 'Error confirming payment', error: error.message });
     }
-}; */
+}; 
 
 module.exports = {
     generatePaymentHash,
