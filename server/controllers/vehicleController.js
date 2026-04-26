@@ -81,7 +81,7 @@ const updateVehicle = async (req, res) => {
             return res.status(400).json({ message: "Price per day must be a positive number" });
         }
 
-        if (capacity !== undefined && capacity <= 0) {
+        if (capacity != null && (isNaN(capacity) || capacity <= 0)) {
             return res.status(400).json({ message: "Capacity must be a positive number" });
         }
 
