@@ -49,6 +49,7 @@ const styles = `
     background: var(--surface);
     font-family: 'Inter', sans-serif;
     color: var(--on-surface);
+    text-align: left;
   }
 
   /* Sidebar Styles */
@@ -335,6 +336,7 @@ const styles = `
     border-top: 1px solid var(--surface-container-high);
     color: var(--on-surface);
     font-size: 0.95rem;
+    text-align: left;
   }
 
   .data-table tr:hover {
