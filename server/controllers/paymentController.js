@@ -152,7 +152,7 @@ const getMyPayments = async (req, res) => {
 // @desc    Get single payment detail
 // @route   GET /api/payments/:id
 // @access  Tourist
-/*const getPaymentDetails = async (req, res) => {
+const getPaymentDetails = async (req, res) => {
     try {
         const payment = await Payment.findByPk(req.params.id, {
             include: [
@@ -176,7 +176,7 @@ const getMyPayments = async (req, res) => {
         res.status(500).json({ message: 'Error fetching payment detail', error: error.message });
     }
 };
-*/
+
 
 // @desc    Update payment status or add-ons (Save as Draft method)
 // @route   PUT /api/payments/:id
