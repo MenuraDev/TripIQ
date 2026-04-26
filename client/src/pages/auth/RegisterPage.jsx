@@ -48,7 +48,24 @@ export default function RegisterPage() {
     });
     const [error, setError] = useState('');
 
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'name' && /\d/.test(value)) return; // Prevent numbers in full name
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const getPasswordStrength = (pwd) => {
+        if (!pwd) return { label: '', color: 'transparent' };
+        let score = 0;
+        if (pwd.length >= 8) score += 1;
+        if (/[A-Z]/.test(pwd)) score += 1;
+        if (/[0-9]/.test(pwd)) score += 1;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) score += 1;
+
+        if (score <= 2) return { label: 'Weak', color: '#ef4444' };
+        if (score === 3) return { label: 'Good', color: '#f59e0b' };
+        return { label: 'Strong', color: '#10b981' };
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -72,7 +89,11 @@ export default function RegisterPage() {
             return setError("License number is required for drivers");
         }
 
-        if (formData.password.length < 6) return setError("Password must be at least 6 characters long");
+        const pwd = formData.password;
+        if (pwd.length < 8) return setError("Password must be at least 8 characters long");
+        if (!/[A-Z]/.test(pwd)) return setError("Password must contain at least 1 capital letter");
+        if (!/[0-9]/.test(pwd)) return setError("Password must contain at least 1 number");
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) return setError("Password must contain at least 1 special character");
         if (formData.password !== formData.confirmPassword) return setError("Passwords do not match");
 
         try {
@@ -170,9 +191,17 @@ export default function RegisterPage() {
                         )}
 
                         <div className="form-row-group">
-                            <div className="form-group">
+                            <div className="form-group" style={{ position: 'relative' }}>
                                 <label>Password</label>
                                 <input type="password" name="password" required placeholder="••••••••" value={formData.password} onChange={handleChange} />
+                                {formData.password && (
+                                    <div style={{ marginTop: '8px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ flex: 1, height: '4px', background: '#d4edda', borderRadius: '2px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: getPasswordStrength(formData.password).label === 'Weak' ? '33%' : getPasswordStrength(formData.password).label === 'Good' ? '66%' : '100%', background: getPasswordStrength(formData.password).color, transition: 'all 0.3s' }}></div>
+                                        </div>
+                                        <span style={{ color: getPasswordStrength(formData.password).color }}>{getPasswordStrength(formData.password).label}</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="form-group">
                                 <label>Confirm Password</label>

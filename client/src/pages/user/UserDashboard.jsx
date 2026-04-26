@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageToggle from '../../components/PageToggle';
+import MLBookingWorkflow from '../../components/MLBookingWorkflow';
 
 const styles = `
   * {
@@ -978,9 +979,28 @@ export default function UserDashboard() {
     }
   };
 
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return { label: '', color: 'transparent' };
+    let score = 0;
+    if (pwd.length >= 8) score += 1;
+    if (/[A-Z]/.test(pwd)) score += 1;
+    if (/[0-9]/.test(pwd)) score += 1;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) score += 1;
+
+    if (score <= 2) return { label: 'Weak', color: '#ef4444' };
+    if (score === 3) return { label: 'Good', color: '#f59e0b' };
+    return { label: 'Strong', color: '#10b981' };
+  };
+
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+    const pwd = passwordFormData.newPassword;
+    
+    if (pwd.length < 8) return alert("Password must be at least 8 characters long");
+    if (!/[A-Z]/.test(pwd)) return alert("Password must contain at least 1 capital letter");
+    if (!/[0-9]/.test(pwd)) return alert("Password must contain at least 1 number");
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) return alert("Password must contain at least 1 special character");
+    if (pwd !== passwordFormData.confirmPassword) {
       alert('Passwords do not match');
       return;
     }
@@ -1753,6 +1773,16 @@ export default function UserDashboard() {
   );
 
   const renderAiPlanningWorkflow = () => (
+    <MLBookingWorkflow
+      user={user}
+      vehicles={vehicles}
+      editingTrip={editingTripId ? trips.find(t => t.id === editingTripId) : null}
+      onClose={() => setIsAiPlanningActive(false)}
+      onConfirmed={() => { setIsAiPlanningActive(false); fetchData(); setActiveTab('My Trips'); }}
+    />
+  );
+
+  const _OLD_renderAiPlanningWorkflow_DISABLED = () => (
     <div className="planning-surface">
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
@@ -2298,8 +2328,7 @@ export default function UserDashboard() {
                 { label: 'Full Name', key: 'name', icon: 'person' },
                 { label: 'Username', key: 'username', icon: 'alternate_email' },
                 { label: 'Email Address', key: 'email', icon: 'mail', type: 'email' },
-                { label: 'Phone Number', key: 'phone', icon: 'call' },
-                { label: 'Date of Birth', key: 'dob', icon: 'calendar_month', type: 'date' },
+                { label: 'Phone Number', key: 'phone', icon: 'call' }
               ].map(field => (
                 <div key={field.key} style={{ gridColumn: field.key === 'email' ? 'span 2' : 'auto' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>{field.label}</label>
@@ -2317,7 +2346,11 @@ export default function UserDashboard() {
                       <input
                         type={field.type || 'text'}
                         value={profileFormData[field.key]}
-                        onChange={e => setProfileFormData({ ...profileFormData, [field.key]: e.target.value })}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (field.key === 'name' && /\d/.test(val)) return;
+                          setProfileFormData({ ...profileFormData, [field.key]: val });
+                        }}
                         style={{ border: 'none', background: 'transparent', width: '100%', fontWeight: 600, outline: 'none' }}
                       />
                     ) : (
@@ -2337,7 +2370,7 @@ export default function UserDashboard() {
                 <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>shield_lock</span> Security
               </h3>
               <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
+                <div style={{ position: 'relative' }}>
                   <input
                     type="password"
                     placeholder="New Password"
@@ -2347,6 +2380,14 @@ export default function UserDashboard() {
                     onChange={e => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
                     required
                   />
+                  {passwordFormData.newPassword && (
+                    <div style={{ marginTop: '8px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ flex: 1, height: '4px', background: '#e8f2e8', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: getPasswordStrength(passwordFormData.newPassword).label === 'Weak' ? '33%' : getPasswordStrength(passwordFormData.newPassword).label === 'Good' ? '66%' : '100%', background: getPasswordStrength(passwordFormData.newPassword).color, transition: 'all 0.3s' }}></div>
+                      </div>
+                      <span style={{ color: getPasswordStrength(passwordFormData.newPassword).color }}>{getPasswordStrength(passwordFormData.newPassword).label}</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <input
@@ -2363,9 +2404,8 @@ export default function UserDashboard() {
               </form>
             </div>
 
-            {/* Danger Zone */}
+            {/* Account Deletion */}
             <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '32px', borderRadius: '40px', border: '1px dashed #ef4444' }}>
-              <h3 style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: '12px', color: '#ef4444' }}>Danger Zone</h3>
               <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '24px' }}>Permanently remove your account and all travel history from the SurangaTours network.</p>
               <button onClick={handleDeleteAccount} className="btn-white" style={{ width: '100%', color: '#ef4444', border: '1px solid #ef4444' }}>Delete My Account</button>
             </div>
