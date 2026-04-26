@@ -28,7 +28,7 @@ const generatePaymentHash = async (req, res) => {
             formattedAmount: formattedAmount
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error generating hash', error: error.message });
+        res.status(500).json({ message: 'Error generating hash', error: error.message }); //PayHere hash generation can be tricky, so detailed error messages are helpful for debugging
     }
 };
 
@@ -93,7 +93,7 @@ const payhereNotify = async (req, res) => {
             return res.status(400).send('Verification Failed');
         }
     } catch (error) {
-        console.error('PayHere Notify Error:', error);
+        console.error('PayHere Notify Error:', error); //PayHere notification errors can be tricky 
         res.status(500).send('Server Error');
     }
 };
@@ -145,7 +145,7 @@ const getMyPayments = async (req, res) => {
         });
         res.json(payments);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching payments', error: error.message });
+        res.status(500).json({ message: 'Error fetching payments', error: error.message }); // Detailed error messages can help identify issues with associations 
     }
 };
 
@@ -290,7 +290,7 @@ const confirmPaymentSuccess = async (req, res) => {
         res.json({ message: 'Payment confirmed successfully', status: 'paid' });
     } catch (error) {
         console.error('Confirm Payment Error:', error);
-        res.status(500).json({ message: 'Error confirming payment', error: error.message });
+        res.status(500).json({ message: 'Error confirming payment', error: error.message }); // Detailed error messages can help identify issues during local testing 
     }
 }; 
 
