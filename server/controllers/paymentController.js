@@ -12,7 +12,7 @@ const generatePaymentHash = async (req, res) => {
     try {
         const { order_id, amount, currency } = req.body;
 
-        // PayHere Hash generation logic:
+        // PayHere Hash generation logic updated tp match their latest requirements:
         // md5sig = MD5 (merchant_id + order_id + amount_formatted + currency + MD5(merchant_secret))
         // amount must be formatted to two decimal places
         const formattedAmount = parseFloat(amount).toFixed(2);
@@ -75,7 +75,7 @@ const payhereNotify = async (req, res) => {
                     await Trip.update({ status: 'confirmed' }, { where: { id: tripId } });
                 }
 
-                // Record the payment
+                // Record the payment 
                 await Payment.create({
                     booking_id: bookingId,
                     amount: payhere_amount,
@@ -98,7 +98,7 @@ const payhereNotify = async (req, res) => {
     }
 };
 
-// @desc    Get all payments (Admin only)
+// @desc    Get all payments (Admin only payments)
 // @route   GET /api/payments
 // @access  Admin
 const getAllPayments = async (req, res) => {
@@ -177,7 +177,7 @@ const getPaymentDetails = async (req, res) => {
     }
 };
 
-// @desc    Update payment status or add-ons (Save as Draft)
+// @desc    Update payment status or add-ons (Save as Draft method)
 // @route   PUT /api/payments/:id
 // @access  Tourist
 const updatePayment = async (req, res) => {
