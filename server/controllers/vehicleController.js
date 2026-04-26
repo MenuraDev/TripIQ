@@ -85,6 +85,12 @@ const updateVehicle = async (req, res) => {
             return res.status(400).json({ message: "Capacity must be a positive number" });
         }
 
+        const validStatuses = ['active', 'inactive', 'maintenance'];
+
+        if (status && !validStatuses.includes(status)) {
+            return res.status(400).json({ message: "Invalid vehicle status" });
+        }
+
         await vehicle.update({
             type: type !== undefined ? type : vehicle.type,
             capacity: capacity !== undefined ? capacity : vehicle.capacity,
