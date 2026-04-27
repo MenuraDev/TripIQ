@@ -1335,14 +1335,7 @@ export default function UserDashboard() {
 
         <div>
           {list.length > 0 ? list.map(trip => (
-            <div key={trip.id} className="trip-item">
-              <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', flexShrink: 0 }}>
-                <img
-                  src={trip.Destinations?.[0]?.image_url ? `http://localhost:5007${trip.Destinations[0].image_url}` : "https://via.placeholder.com/120"}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  alt=""
-                />
-              </div>
+            <div key={trip.id} className="trip-item" onClick={() => setSelectedTripDetails(trip)} style={{ cursor: 'pointer' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                   <h4 style={{ fontWeight: 700, fontSize: '1.4rem' }}>
@@ -1376,7 +1369,7 @@ export default function UserDashboard() {
                   <button
                     className="btn-white"
                     style={{ border: '1px solid var(--surface-container-high)', padding: '10px 16px' }}
-                    onClick={() => handleEditTrip(trip)}
+                    onClick={(e) => { e.stopPropagation(); handleEditTrip(trip); }}
                     title="Edit Trip"
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
@@ -1385,15 +1378,13 @@ export default function UserDashboard() {
                 <button
                   className="btn-white"
                   style={{ border: '1px solid var(--surface-container-high)', color: '#ef4444', padding: '10px 16px' }}
-                  onClick={() => handleCancelTrip(trip.id)}
+                  onClick={(e) => { e.stopPropagation(); handleCancelTrip(trip.id); }}
                   title="Cancel Trip"
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete_forever</span>
                 </button>
-                <div style={{ width: '1px', background: 'var(--surface-container-high)', margin: '0 8px' }}></div>
-                <button className="btn-white" style={{ border: '1px solid var(--surface-container-high)' }} onClick={() => setSelectedTripDetails(trip)}>Details</button>
                 {trip.status === 'confirmed' && (!trip.Booking || !trip.Booking.Payment) && (
-                  <button className="btn-primary" onClick={() => navigate(`/payment/${trip.Booking?.id}`)}>Pay Now</button>
+                  <button className="btn-primary" onClick={(e) => { e.stopPropagation(); navigate(`/payment/${trip.Booking?.id}`); }}>Pay Now</button>
                 )}
               </div>
             </div>
