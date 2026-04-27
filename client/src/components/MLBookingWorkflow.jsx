@@ -319,10 +319,18 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
                             style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 18px', borderRadius:'12px', border:`1.5px solid ${picked?'var(--primary)':'var(--surface-container-high)'}`, background:picked?'rgba(27,109,46,0.04)':'white', cursor:'pointer', transition:'all 0.15s' }}>
                             <div>
                               <div style={{ fontWeight:700, marginBottom:'2px' }}>{p.place}</div>
-                              <div style={{ fontSize:'0.8rem', color:'#64748b' }}>{p.city} · {p.category} · ⏱ {p.time_needed}h</div>
+                              <div style={{ fontSize:'0.8rem', color:'#64748b' }}>{p.city} · {p.category}</div>
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-                              <span style={{ fontWeight:700, color:'#f59e0b' }}>⭐ {parseFloat(p.rating).toFixed(1)}</span>
+                              <span style={{ fontSize: '1.2rem', filter: 'grayscale(0.2)' }}>
+                                {p.category?.toLowerCase().match(/beach|sea|coast|ocean/) ? '🏖️' :
+                                 p.category?.toLowerCase().match(/mountain|hiking|hill|peak|rock/) ? '⛰️' :
+                                 p.category?.toLowerCase().match(/nature|garden|park|forest|wildlife|animal|safari/) ? '🌿' :
+                                 p.category?.toLowerCase().match(/religi|temple|church|mosque|shrine/) ? '🛕' :
+                                 p.category?.toLowerCase().match(/histor|culture|ruin|heritage|fort|museum/) ? '🏛️' :
+                                 p.category?.toLowerCase().match(/adventur|sport|surf/) ? '🧗' :
+                                 p.category?.toLowerCase().match(/waterfall|river|lake|stream/) ? '🌊' : '📍'}
+                              </span>
                               {picked && <div style={{ width:'20px', height:'20px', background:'var(--primary)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}><span className="material-symbols-outlined" style={{ fontSize:'12px', color:'white' }}>check</span></div>}
                             </div>
                           </div>
