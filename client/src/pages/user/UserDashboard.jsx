@@ -1457,9 +1457,6 @@ export default function UserDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {trip.Destinations && trip.Destinations.length > 0 ? trip.Destinations.map((dest, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '24px', paddingBottom: '24px', borderBottom: i < trip.Destinations.length - 1 ? '1px solid var(--surface-container)' : 'none' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '16px', overflow: 'hidden', background: '#F3F4F6' }}>
-                      <img src={dest.image_url ? `http://localhost:5007${dest.image_url}` : 'https://via.placeholder.com/80'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={dest.name} />
-                    </div>
                     <div style={{ flex: 1 }}>
                       <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '4px' }}>{dest.name}</h4>
                       <p style={{ fontSize: '0.9rem', color: '#64748b' }}>{dest.category} • {dest.district}</p>
@@ -1472,20 +1469,7 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-            {/* Preferences */}
-            <div style={{ background: 'var(--surface-container-lowest)', padding: '40px', borderRadius: '40px', border: '1px solid var(--outline-variant)' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>settings</span> Travel Preferences
-              </h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {trip.preferences ? JSON.parse(trip.preferences).map((pref, i) => (
-                  <span key={i} style={{ padding: '8px 16px', background: 'white', border: '1px solid var(--outline-variant)', borderRadius: '50px', fontSize: '0.85rem', fontWeight: 600 }}>{pref}</span>
-                )) : <p style={{ fontSize: '0.9rem', color: '#64748b' }}>No special preferences set.</p>}
-              </div>
-            </div>
-
-            {/* Vehicle & Allocation */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>            {/* Vehicle & Allocation */}
             <div style={{ background: 'white', padding: '40px', borderRadius: '40px', border: '1px solid var(--outline-variant)' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>directions_car</span> Assigned Vehicle
