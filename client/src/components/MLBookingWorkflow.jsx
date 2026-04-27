@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import TravelMap from './TravelMap';
 
-export default function MLBookingWorkflow({ user, vehicles, editingTrip, onClose, onConfirmed }) {
+export default function MLBookingWorkflow({ user, vehicles: initialVehicles, editingTrip, onClose, onConfirmed }) {
+  const [vehicles, setVehicles] = useState(initialVehicles || []);
   const [step, setStep] = useState(1);
   const [prefs, setPrefs] = useState({ Likes_Beach:0, Likes_Mountain:0, Likes_Culture:0, Likes_Adventure:0, Budget:2 });
   const [dates, setDates] = useState({ startDate:'', endDate:'', groupSize:1 });
@@ -23,24 +24,49 @@ export default function MLBookingWorkflow({ user, vehicles, editingTrip, onClose
     : 0;
 
   useEffect(() => {
-    if (editingTrip) setDates({ startDate: editingTrip.start_date?.split('T')[0]||'', endDate: editingTrip.end_date?.split('T')[0]||'', groupSize: editingTrip.group_size||1 });
+    if (editingTrip) {
+      setDates({ startDate: editingTrip.start_date?.split('T')[0]||'', endDate: editingTrip.end_date?.split('T')[0]||'', groupSize: editingTrip.group_size||1 });
+      setPrefs({
+        Likes_Beach: editingTrip.likes_beach || 0,
+        Likes_Mountain: editingTrip.likes_mountain || 0,
+        Likes_Culture: editingTrip.likes_culture || 0,
+        Likes_Adventure: editingTrip.likes_adventure || 0,
+        Budget: editingTrip.budget_tier || 2
+      });
+    }
   }, [editingTrip]);
+
+  useEffect(() => {
+    // Always fetch fresh vehicles to ensure we have the latest booking statuses
+    fetch('http://localhost:5007/api/vehicles/all')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setVehicles(data);
+      })
+      .catch(e => console.error("Failed to fetch fresh vehicles:", e));
+  }, []);
 
   const getAvailableVehicles = () => {
     return (vehicles || []).filter(v =>
       v.status === 'active' &&
-      Number(v.capacity) >= Number(dates.groupSize)
+      Number(v.capacity) >= Number(dates.groupSize) &&
+      !(v.Bookings && v.Bookings.some(b => b.status === 'accepted'))
     ).sort((a, b) => a.price_per_day - b.price_per_day);
   };
 
   useEffect(() => {
     if (step === 4) {
-      const available = getAvailableVehicles();
+      const available = (vehicles || []).filter(v =>
+        v.status === 'active' &&
+        Number(v.capacity) >= Number(dates.groupSize) &&
+        !(v.Bookings && v.Bookings.some(b => b.status === 'accepted'))
+      ).sort((a, b) => a.price_per_day - b.price_per_day);
+      
       if (available.length > 0 && !selectedVehicle) {
         setSelectedVehicle(available[0]); // Default to cheapest matching
       }
     }
-  }, [step, dates.groupSize, vehicles]);
+  }, [step, dates.groupSize, vehicles, selectedVehicle]);
 
   const togglePref = k => setPrefs(p => ({ ...p, [k]: p[k] ? 0 : 1 }));
 
@@ -104,6 +130,7 @@ export default function MLBookingWorkflow({ user, vehicles, editingTrip, onClose
           end_date: dates.endDate,
           group_size: parseInt(dates.groupSize) || 1,
           destinations,
+          prefs,
           status: 'planned'
         })
       });

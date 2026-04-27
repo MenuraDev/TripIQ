@@ -34,7 +34,7 @@ const getMyTrips = async (req, res) => {
 // @access  Tourist
 const createTrip = async (req, res) => {
     try {
-        const { start_date, end_date, group_size, destinations } = req.body;
+        const { start_date, end_date, group_size, destinations, prefs } = req.body;
         // destinations should be array of objects: [{ destination_id, day_number, visit_order }]
 
         const newTrip = await Trip.create({
@@ -42,7 +42,12 @@ const createTrip = async (req, res) => {
             start_date,
             end_date,
             group_size: group_size || 1,
-            status: 'planned'
+            status: 'planned',
+            budget_tier: prefs?.Budget !== undefined ? prefs.Budget : 2,
+            likes_beach: prefs?.Likes_Beach || 0,
+            likes_mountain: prefs?.Likes_Mountain || 0,
+            likes_culture: prefs?.Likes_Culture || 0,
+            likes_adventure: prefs?.Likes_Adventure || 0,
         });
 
         if (destinations && destinations.length > 0) {
@@ -83,7 +88,7 @@ const createTrip = async (req, res) => {
 // @access  Tourist
 const updateTrip = async (req, res) => {
     try {
-        const { start_date, end_date, group_size, destinations, status } = req.body;
+        const { start_date, end_date, group_size, destinations, status, prefs } = req.body;
 
         const trip = await Trip.findByPk(req.params.id);
 
@@ -103,7 +108,12 @@ const updateTrip = async (req, res) => {
             start_date: start_date || trip.start_date,
             end_date: end_date || trip.end_date,
             group_size: group_size || trip.group_size,
-            status: status || trip.status
+            status: status || trip.status,
+            budget_tier: prefs?.Budget !== undefined ? prefs.Budget : trip.budget_tier,
+            likes_beach: prefs?.Likes_Beach !== undefined ? prefs.Likes_Beach : trip.likes_beach,
+            likes_mountain: prefs?.Likes_Mountain !== undefined ? prefs.Likes_Mountain : trip.likes_mountain,
+            likes_culture: prefs?.Likes_Culture !== undefined ? prefs.Likes_Culture : trip.likes_culture,
+            likes_adventure: prefs?.Likes_Adventure !== undefined ? prefs.Likes_Adventure : trip.likes_adventure,
         });
 
         // Update destinations if provided (basic implementation replacing old ones)

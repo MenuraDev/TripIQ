@@ -1,4 +1,4 @@
-const { Vehicle, Driver } = require('../models');
+const { Vehicle, Driver, Booking } = require('../models');
 
 // @desc    Get all vehicles (public)
 // @route   GET /api/vehicles/all
@@ -7,7 +7,10 @@ const getAllVehicles = async (req, res) => {
     try {
         const vehicles = await Vehicle.findAll({
             where: { status: 'active' },
-            include: [{ model: Driver, attributes: ['name', 'phone', 'license_no'] }]
+            include: [
+                { model: Driver, attributes: ['name', 'phone', 'license_no'] },
+                { model: Booking, attributes: ['status'] }
+            ]
         });
         res.json(vehicles);
     } catch (error) {
