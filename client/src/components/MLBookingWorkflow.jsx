@@ -141,7 +141,7 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
       const savedTrip = await tr.json();
 
       // Create Booking (If new or needed)
-      if (selectedVehicle && !editingTrip) {
+      if (selectedVehicle) {
         await fetch('http://localhost:5007/api/bookings', {
           method: 'POST',
           headers: H,

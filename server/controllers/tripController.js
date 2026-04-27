@@ -100,9 +100,12 @@ const updateTrip = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized to modify this trip' });
         }
 
-        if (trip.status !== 'planned') {
-            return res.status(400).json({ message: 'Cannot modify a trip that is already confirmed or completed' });
+        if (trip.status === 'completed' || trip.status === 'cancelled') {
+            return res.status(400).json({ message: 'Cannot modify a trip that is already completed or cancelled' });
         }
+
+        // Since the itinerary/dates are changing, we invalidate any existing booking
+        await Booking.destroy({ where: { trip_id: trip.id } });
 
         await trip.update({
             start_date: start_date || trip.start_date,
