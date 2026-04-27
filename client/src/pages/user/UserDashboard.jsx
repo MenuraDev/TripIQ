@@ -1215,7 +1215,7 @@ export default function UserDashboard() {
           <div
             key={item.id}
             className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => { setActiveTab(item.id); setIsAiPlanningActive(false); }}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
             <span className="nav-label">{item.label}</span>

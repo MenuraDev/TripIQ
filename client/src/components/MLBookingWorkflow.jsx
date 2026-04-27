@@ -176,6 +176,17 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
     );
   };
 
+  const canGoToStep = (targetStep) => {
+    if (targetStep <= step) return true;
+    for (let i = step; i < targetStep; i++) {
+      if (i === 1 && (!dates.startDate || !dates.endDate || !dates.groupSize || !mlResult.suggestions?.length)) return false;
+      if (i === 2 && !selectedClusters.length) return false;
+      if (i === 3 && !allPlaces.length) return false;
+      if (i === 4 && (!selectedVehicle && getAvailableVehicles().length > 0)) return false;
+    }
+    return true;
+  };
+
   return (
     <div className="planning-surface">
       <div style={{ maxWidth:'1100px', margin:'0 auto' }}>
@@ -185,12 +196,20 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-            {[1,2,3,4,5].map(n=>(
+            {[1,2,3,4,5].map(n=>{
+              const clickable = canGoToStep(n);
+              return (
               <React.Fragment key={n}>
-                <div className={`step-dot ${step>=n?'active':''}`}>{n}</div>
+                <div 
+                  className={`step-dot ${step>=n?'active':''}`} 
+                  onClick={() => { if (clickable) setStep(n); }} 
+                  style={{ cursor: clickable ? 'pointer' : 'not-allowed', opacity: clickable ? 1 : 0.6 }}
+                >
+                  {n}
+                </div>
                 {n<5 && <div style={{ width:'24px', height:'2px', background:step>n?'var(--primary)':'var(--surface-container)' }}/>}
               </React.Fragment>
-            ))}
+            )})}
           </div>
           <span style={{ marginLeft:'auto', fontSize:'0.85rem', color:'#64748b', fontWeight:600 }}>Step {step} of {TOTAL_STEPS}</span>
         </div>
