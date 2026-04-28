@@ -23,9 +23,37 @@ const Payment = sequelize.define('Payment', {
         type: DataTypes.ENUM('card', 'cash'),
         defaultValue: 'card',
     },
+    payment_method: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    gateway: {
+        type: DataTypes.STRING,
+        defaultValue: 'payhere',
+    },
+    currency: {
+        type: DataTypes.STRING,
+        defaultValue: 'LKR',
+    },
     status: {
         type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded', 'draft'),
         defaultValue: 'pending',
+    },
+    transaction_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    refund_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    refund_reason: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    refunded_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
     },
     receipt_url: {
         type: DataTypes.STRING,
@@ -33,6 +61,10 @@ const Payment = sequelize.define('Payment', {
     },
     selected_addons: {
         type: DataTypes.TEXT, // Store as JSON string
+        allowNull: true,
+    },
+    gateway_response: {
+        type: DataTypes.TEXT,
         allowNull: true,
     }
 }, {

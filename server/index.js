@@ -10,6 +10,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Initialize Database
@@ -19,10 +20,11 @@ connectDB().then(() => {
 
 // Basic Health Route
 app.get('/', (req, res) => {
-    res.send('SurangaTours API is running...');
+    res.send('SurangaTours API is running... ✅');
 });
 
 // Routes
+app.use('/api/ml', require('./routes/mlRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));

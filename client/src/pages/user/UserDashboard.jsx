@@ -1,7 +1,8 @@
 // client\src\pages\user\UserDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageToggle from '../../components/PageToggle';
+import MLBookingWorkflow from '../../components/MLBookingWorkflow';
 
 const styles = `
   * {
@@ -674,6 +675,28 @@ export default function UserDashboard() {
     confirmPassword: ''
   });
 
+  const getRefundRestrictionMessage = (payment) => {
+    const startDate = payment?.Booking?.Trip?.start_date ? new Date(payment.Booking.Trip.start_date) : null;
+    if (!startDate || Number.isNaN(startDate.getTime())) return null;
+
+    const hoursUntilTrip = (startDate.getTime() - Date.now()) / (1000 * 60 * 60);
+    if (hoursUntilTrip < 48) {
+      return 'Your trip starts in less than 48 hours. Our policy does not allow refunds within 48 hours of the trip start date.';
+    }
+
+    return null;
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+  const [showOtpForm, setShowOtpForm] = useState(false);
+  const otpInputRefs = useRef([]);
+
   useEffect(() => {
     if (!user.token) {
       navigate('/login');
@@ -978,27 +1001,111 @@ export default function UserDashboard() {
     }
   };
 
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) value = value[0];
+    const newOtp = [...otpCode];
+    newOtp[index] = value;
+    setOtpCode(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+      otpInputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/users/request-password-change', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        }
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert('Verification code resent to your email!');
+        setOtpCode(['', '', '', '', '', '']);
+      } else {
+        alert(data.message || 'Failed to resend code');
+      }
+    } catch (err) {
+      console.error('Resend OTP Error:', err);
+      alert('Server error. Please try again.');
+    }
+  };
+
   const handleChangePassword = async (e) => {
     e.preventDefault();
+
+    // Step 1: Request OTP
+    if (!showOtpForm) {
+      try {
+        const res = await fetch('http://localhost:5000/api/users/request-password-change', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.token}`
+          }
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('Verification code sent to your email!');
+          setShowOtpForm(true);
+        } else {
+          alert(data.message || 'Failed to send verification code');
+        }
+      } catch (err) {
+        console.error('Request OTP Error:', err);
+        alert('Server error. Please try again.');
+      }
+      return;
+    }
+
+    // Step 2: Verify OTP and change password
     if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
       alert('Passwords do not match');
       return;
     }
+
+    const code = otpCode.join('');
+    if (code.length !== 6) {
+      alert('Please enter the complete 6-digit code');
+      return;
+    }
+
     try {
-      const res = await fetch('http://localhost:5000/api/users/profile', {
-        method: 'PUT',
+      const res = await fetch('http://localhost:5000/api/users/verify-password-change', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user.token}`
         },
-        body: JSON.stringify({ password: passwordFormData.newPassword })
+        body: JSON.stringify({
+          code,
+          newPassword: passwordFormData.newPassword
+        })
       });
       if (res.ok) {
         alert('Password changed successfully!');
         setPasswordFormData({ newPassword: '', confirmPassword: '' });
+        setOtpCode(['', '', '', '', '', '']);
+        setShowOtpForm(false);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Failed to change password');
       }
     } catch (err) {
       console.error('Password Change Error:', err);
+      alert('Server error. Please try again.');
     }
   };
 
@@ -1093,6 +1200,86 @@ export default function UserDashboard() {
     }
   };
 
+  const handleDownloadTransactionPdf = async (paymentId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/payments/${paymentId}/receipt-pdf`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to generate transaction PDF.');
+      }
+
+      const data = await res.json();
+      const byteCharacters = window.atob(data.pdfBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i += 1) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: data.mimeType || 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = data.fileName || `transaction-${paymentId}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download Transaction PDF Error:', err);
+      alert(err.message || 'Failed to generate transaction PDF.');
+    }
+  };
+
+  const handleRefundTransaction = async (payment) => {
+    const refundRestrictionMessage = getRefundRestrictionMessage(payment);
+    if (refundRestrictionMessage) {
+      alert(refundRestrictionMessage);
+      return;
+    }
+
+    const reason = window.prompt('Enter refund reason', 'Customer requested refund');
+    if (reason === null) return;
+    if (!window.confirm('Refund this completed transaction?')) return;
+
+    let paymentIdOverride = '';
+    if (!payment.transaction_id || !/^\d+$/.test(String(payment.transaction_id))) {
+      paymentIdOverride = window.prompt(
+        'Enter the numeric PayHere payment ID for this transaction. You can find it in your PayHere sandbox dashboard transaction details.',
+        ''
+      ) || '';
+
+      if (!paymentIdOverride.trim()) {
+        alert('Refund cancelled. Please enter a valid numeric PayHere payment ID.');
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/payments/${payment.id}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          reason,
+          payment_id_override: paymentIdOverride.trim() || undefined
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ? `${data.message}: ${data.error}` : (data.message || 'Refund failed.'));
+      }
+
+      setPaymentHistory(prev => prev.map(p => p.id === payment.id ? data : p));
+      alert('Refund processed successfully.');
+    } catch (err) {
+      console.error('Refund Transaction Error:', err);
+      alert(err.message || 'Refund failed.');
+    }
+  };
+
   const fetchMyReviews = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/reviews/my', {
@@ -1109,8 +1296,7 @@ export default function UserDashboard() {
         rating: reviewFormData.rating,
         comment: reviewFormData.comment,
         trip_id: reviewFormData.type === 'Trip' ? reviewFormData.targetId : null,
-        driver_id: reviewFormData.type === 'Driver' ? reviewFormData.targetId : null,
-        destination_id: reviewFormData.type === 'Destination' ? reviewFormData.targetId : null
+        driver_id: reviewFormData.type === 'Driver' ? reviewFormData.targetId : null
       };
 
       const url = editingReviewId
@@ -1195,7 +1381,7 @@ export default function UserDashboard() {
           <div
             key={item.id}
             className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => { setActiveTab(item.id); setIsAiPlanningActive(false); }}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
             <span className="nav-label">{item.label}</span>
@@ -1227,7 +1413,7 @@ export default function UserDashboard() {
         </button>
         <div
           className="nav-item"
-          onClick={() => { localStorage.removeItem('user'); navigate('/login'); }}
+          onClick={handleLogout}
         >
           <span className="material-symbols-outlined">logout</span>
           {!isCollapsed && "Logout"}
@@ -1356,7 +1542,7 @@ export default function UserDashboard() {
                   <button
                     className="btn-white"
                     style={{ border: '1px solid var(--surface-container-high)', padding: '10px 16px' }}
-                    onClick={() => handleEditTrip(trip)}
+                    onClick={(e) => { e.stopPropagation(); handleEditTrip(trip); }}
                     title="Edit Trip"
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
@@ -1365,7 +1551,7 @@ export default function UserDashboard() {
                 <button
                   className="btn-white"
                   style={{ border: '1px solid var(--surface-container-high)', color: '#ef4444', padding: '10px 16px' }}
-                  onClick={() => handleCancelTrip(trip.id)}
+                  onClick={(e) => { e.stopPropagation(); handleCancelTrip(trip.id); }}
                   title="Cancel Trip"
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete_forever</span>
@@ -1373,7 +1559,7 @@ export default function UserDashboard() {
                 <div style={{ width: '1px', background: 'var(--surface-container-high)', margin: '0 8px' }}></div>
                 <button className="btn-white" style={{ border: '1px solid var(--surface-container-high)' }} onClick={() => setSelectedTripDetails(trip)}>Details</button>
                 {trip.status === 'confirmed' && (!trip.Booking || !trip.Booking.Payment) && (
-                  <button className="btn-primary" onClick={() => navigate(`/payment/${trip.Booking?.id}`)}>Pay Now</button>
+                  <button className="btn-primary" onClick={(e) => { e.stopPropagation(); navigate(`/payment/${trip.Booking?.id}`); }}>Pay Now</button>
                 )}
               </div>
             </div>
@@ -1446,9 +1632,6 @@ export default function UserDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {trip.Destinations && trip.Destinations.length > 0 ? trip.Destinations.map((dest, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '24px', paddingBottom: '24px', borderBottom: i < trip.Destinations.length - 1 ? '1px solid var(--surface-container)' : 'none' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '16px', overflow: 'hidden', background: '#F3F4F6' }}>
-                      <img src={dest.image_url ? `http://localhost:5000${dest.image_url}` : 'https://via.placeholder.com/80'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={dest.name} />
-                    </div>
                     <div style={{ flex: 1 }}>
                       <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '4px' }}>{dest.name}</h4>
                       <p style={{ fontSize: '0.9rem', color: '#64748b' }}>{dest.category} • {dest.district}</p>
@@ -1462,18 +1645,7 @@ export default function UserDashboard() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-            {/* Preferences */}
-            <div style={{ background: 'var(--surface-container-lowest)', padding: '40px', borderRadius: '40px', border: '1px solid var(--outline-variant)' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>settings</span> Travel Preferences
-              </h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {trip.preferences ? JSON.parse(trip.preferences).map((pref, i) => (
-                  <span key={i} style={{ padding: '8px 16px', background: 'white', border: '1px solid var(--outline-variant)', borderRadius: '50px', fontSize: '0.85rem', fontWeight: 600 }}>{pref}</span>
-                )) : <p style={{ fontSize: '0.9rem', color: '#64748b' }}>No special preferences set.</p>}
-              </div>
-            </div>
-
+            
             {/* Vehicle & Allocation */}
             <div style={{ background: 'white', padding: '40px', borderRadius: '40px', border: '1px solid var(--outline-variant)' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1576,7 +1748,7 @@ export default function UserDashboard() {
 
   const renderPayments = () => {
     const savedDraftsList = paymentHistory.filter(p => p.status === 'draft' || p.status === 'pending');
-    const transactionHistoryList = paymentHistory.filter(p => p.status === 'completed' || p.status === 'failed');
+    const transactionHistoryList = paymentHistory.filter(p => p.status === 'completed' || p.status === 'failed' || p.status === 'refunded');
 
     return (
       <div className="main-content">
@@ -1660,8 +1832,10 @@ export default function UserDashboard() {
                 <tr style={{ textAlign: 'left', fontSize: '0.85rem', color: '#64748b', borderBottom: '2px solid var(--surface-container)' }}>
                   <th style={{ padding: '16px 24px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
                   <th style={{ padding: '16px 24px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reference</th>
+                  <th style={{ padding: '16px 24px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Transaction</th>
                   <th style={{ padding: '16px 24px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</th>
                   <th style={{ padding: '16px 24px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                  <th style={{ padding: '16px 24px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1669,21 +1843,34 @@ export default function UserDashboard() {
                   <tr key={t.id} style={{ borderBottom: '1px solid var(--surface-container)', transition: 'background 0.2s', ':hover': { background: 'var(--surface-container-lowest)' } }}>
                     <td style={{ padding: '24px', fontSize: '0.95rem', fontWeight: 500 }}>{new Date(t.updatedAt).toLocaleDateString()}</td>
                     <td style={{ padding: '24px', fontSize: '0.95rem', fontWeight: 600, color: '#334155' }}>#{t.booking_id}</td>
+                    <td style={{ padding: '24px', fontSize: '0.95rem', fontWeight: 600, color: '#334155' }}>{t.transaction_id || `PAY-${t.id}`}</td>
                     <td style={{ padding: '24px', fontSize: '1.1rem', fontWeight: 700, color: 'var(--primary)' }}>LKR {t.amount?.toLocaleString()}</td>
                     <td style={{ padding: '24px' }}>
                       <span style={{
                         fontSize: '0.8rem', padding: '6px 16px', borderRadius: '50px',
-                        background: t.status === 'completed' ? 'rgba(27,109,36,0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        color: t.status === 'completed' ? 'var(--secondary)' : '#ef4444',
+                        background: t.status === 'completed' ? 'rgba(27,109,36,0.1)' : t.status === 'refunded' ? 'rgba(37, 99, 235, 0.12)' : 'rgba(239, 68, 68, 0.1)',
+                        color: t.status === 'completed' ? 'var(--secondary)' : t.status === 'refunded' ? '#1d4ed8' : '#ef4444',
                         fontWeight: 700, letterSpacing: '0.05em'
                       }}>
                         {t.status.toUpperCase()}
                       </span>
                     </td>
+                    <td style={{ padding: '24px' }}>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button className="btn-white" style={{ padding: '10px 16px', border: '1px solid var(--outline-variant)' }} onClick={() => handleDownloadTransactionPdf(t.id)}>
+                          PDF
+                        </button>
+                        {t.status === 'completed' && (
+                          <button className="btn-white" style={{ padding: '10px 16px', border: '1px solid #bfdbfe', color: '#1d4ed8' }} onClick={() => handleRefundTransaction(t)}>
+                            Refund
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan="4" style={{ textAlign: 'center', padding: '60px', color: '#64748b', fontWeight: 600 }}>No transaction history found.</td>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '60px', color: '#64748b', fontWeight: 600 }}>No transaction history found.</td>
                   </tr>
                 )}
               </tbody>
@@ -1753,6 +1940,16 @@ export default function UserDashboard() {
   );
 
   const renderAiPlanningWorkflow = () => (
+    <MLBookingWorkflow
+      user={user}
+      vehicles={vehicles}
+      editingTrip={editingTripId ? trips.find(t => t.id === editingTripId) : null}
+      onClose={() => setIsAiPlanningActive(false)}
+      onConfirmed={() => { setIsAiPlanningActive(false); fetchData(); setActiveTab('My Trips'); }}
+    />
+  );
+
+  const _OLD_renderAiPlanningWorkflow_DISABLED = () => (
     <div className="planning-surface">
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
@@ -2336,31 +2533,108 @@ export default function UserDashboard() {
               <h3 style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>shield_lock</span> Security
               </h3>
-              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
-                  <input
-                    type="password"
-                    placeholder="New Password"
-                    className="input-field"
-                    style={{ fontSize: '0.9rem' }}
-                    value={passwordFormData.newPassword}
-                    onChange={e => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <input
-                    type="password"
-                    placeholder="Confirm Password"
-                    className="input-field"
-                    style={{ fontSize: '0.9rem' }}
-                    value={passwordFormData.confirmPassword}
-                    onChange={e => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px' }}>Update Password</button>
-              </form>
+              {!showOtpForm ? (
+                // Step 1: Request OTP Button
+                <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '8px' }}>
+                    To change your password, we'll send a verification code to your email.
+                  </p>
+                  <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px' }}>
+                    Send Verification Code
+                  </button>
+                </form>
+              ) : (
+                // Step 2: OTP Input and Password Fields
+                <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a6b2e', marginBottom: '8px', display: 'block', textTransform: 'uppercase' }}>Verification Code</label>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '16px' }}>
+                      {otpCode.map((digit, index) => (
+                        <input
+                          key={index}
+                          type="text"
+                          maxLength="1"
+                          className="otp-input"
+                          value={digit}
+                          ref={(el) => (otpInputRefs.current[index] = el)}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          style={{
+                            width: '45px',
+                            height: '55px',
+                            textAlign: 'center',
+                            fontSize: '1.5rem',
+                            fontWeight: 700,
+                            border: '2px solid #d4edda',
+                            borderRadius: '12px',
+                            outline: 'none',
+                            transition: 'all 0.2s',
+                            background: '#f9fff9',
+                            color: '#0f2318'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#2d9e4f'}
+                          onBlur={(e) => e.target.style.borderColor = '#d4edda'}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        style={{ background: 'none', border: 'none', color: '#2d9e4f', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}
+                      >
+                        Resend Code
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="New Password"
+                      className="input-field"
+                      style={{ fontSize: '0.9rem' }}
+                      value={passwordFormData.newPassword}
+                      onChange={e => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="Confirm Password"
+                      className="input-field"
+                      style={{ fontSize: '0.9rem' }}
+                      value={passwordFormData.confirmPassword}
+                      onChange={e => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px' }}>
+                    Verify & Update Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowOtpForm(false);
+                      setOtpCode(['', '', '', '', '', '']);
+                      setPasswordFormData({ newPassword: '', confirmPassword: '' });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'transparent',
+                      border: '1px solid #ef4444',
+                      color: '#ef4444',
+                      borderRadius: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Danger Zone */}
@@ -2540,7 +2814,7 @@ export default function UserDashboard() {
                     .flatMap(t => t.Destinations || [])
                     .map((d, index) => (
                       <option key={`${d.id}-${index}`} value={d.id}>{d.name}</option>
-                  ))}
+                    ))}
                 </select>
               </div>
 

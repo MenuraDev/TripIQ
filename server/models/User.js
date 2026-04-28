@@ -46,6 +46,11 @@ const User = sequelize.define('User', {
         defaultValue: 'tourist',
         allowNull: false,
     },
+    email_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+    },
 }, {
     tableName: 'users',
     timestamps: true, // creates created_at & updated_at automatically

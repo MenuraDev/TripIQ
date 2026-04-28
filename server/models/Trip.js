@@ -40,6 +40,26 @@ const Trip = sequelize.define('Trip', {
     budget: {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0.00,
+    },
+    budget_tier: {
+        type: DataTypes.INTEGER,
+        defaultValue: 2,
+    },
+    likes_beach: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+    },
+    likes_mountain: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+    },
+    likes_culture: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+    },
+    likes_adventure: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
     }
 }, {
     tableName: 'trips',

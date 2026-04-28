@@ -56,14 +56,7 @@ const createBooking = async (req, res) => {
             status: 'pending'
         });
 
-        // Create initial Payment draft
-        const payment = await Payment.create({
-            booking_id: newBooking.id,
-            amount: totalCost,
-            status: 'draft'
-        });
-
-        res.status(201).json({ booking: newBooking, payment: payment, total_cost: totalCost });
+        res.status(201).json({ booking: newBooking, total_cost: totalCost });
     } catch (error) {
         res.status(500).json({ message: 'Error creating booking', error: error.message });
     }

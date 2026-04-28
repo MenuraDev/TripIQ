@@ -1,4 +1,4 @@
-/client/node_modules
-/server/node_modules
-/server/uploads
-/server/.env
+# .md files
+EMAIL_VERIFICATION_IMPLEMENTATION.md
+EMAIL_VERIFICATION_PLAN.md
+RECAPTCHA_IMPLEMENTATION.md
