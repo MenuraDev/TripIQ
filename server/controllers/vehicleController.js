@@ -39,6 +39,14 @@ const addVehicle = async (req, res) => {
     try {
         const { type, capacity, price_per_day, condition, image_url } = req.body;
 
+        if (!price_per_day || price_per_day <= 0) {
+            return res.status(400).json({ message: "Price per day must be a positive number" });
+        }
+
+        if (capacity !== undefined && capacity <= 0) {
+            return res.status(400).json({ message: "Capacity must be a positive number" });
+        }
+
         const newVehicle = await Vehicle.create({
             driver_id: req.user.id,
             type,
@@ -62,6 +70,10 @@ const updateVehicle = async (req, res) => {
     try {
         const { type, capacity, price_per_day, status, condition, image_url } = req.body;
 
+        if (isNaN(req.params.id)) {
+            return res.status(400).json({ message: "Invalid vehicle ID" });
+        }
+        
         const vehicle = await Vehicle.findByPk(req.params.id);
 
         if (!vehicle) {
@@ -70,6 +82,14 @@ const updateVehicle = async (req, res) => {
 
         if (vehicle.driver_id !== req.user.id) {
             return res.status(401).json({ message: 'Not authorized to update this vehicle' });
+        }
+
+        if (price_per_day !== undefined && price_per_day <= 0) {
+            return res.status(400).json({ message: "Price per day must be a positive number" });
+        }
+
+        if (capacity !== undefined && capacity <= 0) {
+            return res.status(400).json({ message: "Capacity must be a positive number" });
         }
 
         await vehicle.update({

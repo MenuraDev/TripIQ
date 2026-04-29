@@ -31,6 +31,40 @@ const updateDriverProfile = async (req, res) => {
             return res.status(404).json({ message: 'Driver not found' });
         }
 
+        // DRIVER VALIDATION: Phone number - exactly 10 digits
+        if (req.body.phone) {
+            const phoneDigitsOnly = req.body.phone.replace(/\D/g, '');
+            if (phoneDigitsOnly.length !== 10) {
+                return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
+            }
+        }
+
+        // DRIVER VALIDATION: Email - valid format
+        if (req.body.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(req.body.email)) {
+                return res.status(400).json({ message: 'Please enter a valid email address' });
+            }
+        }
+
+        // DRIVER VALIDATION: Date of Birth - not a future date
+        if (req.body.dob) {
+            const dobDate = new Date(req.body.dob);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                return res.status(400).json({ message: 'Date of Birth cannot be a future date' });
+            }
+        }
+
+        // DRIVER VALIDATION: Password - minimum 8 characters with letter and number
+        if (req.body.password) {
+            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            if (!passwordRegex.test(req.body.password)) {
+                return res.status(400).json({ message: 'Password must be at least 8 characters with at least one letter and one number' });
+            }
+        }
+
         driver.name = req.body.name || driver.name;
         driver.phone = req.body.phone || driver.phone;
         driver.username = req.body.username || driver.username;
