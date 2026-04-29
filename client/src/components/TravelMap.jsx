@@ -63,7 +63,7 @@ function orderClusters(clusters) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
   const [routeCoords, setRouteCoords] = useState([]);
-  const airport = [7.18, 79.88];
+  const airport = useMemo(() => [7.18, 79.88], []);
 
   const validClusters = (clusters || []).filter(c => c.lat && c.lon);
   const orderedClusters = orderClusters(validClusters);
