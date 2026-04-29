@@ -565,6 +565,22 @@ export default function AdminDashboard() {
     const [destImagePreview, setDestImagePreview] = React.useState('');
     const [showDestinationModal, setShowDestinationModal] = React.useState(false);
 
+    // District dropdown state
+    const [districtSearch, setDistrictSearch] = React.useState('');
+    const [showDistrictDropdown, setShowDistrictDropdown] = React.useState(false);
+    const [filteredDistricts, setFilteredDistricts] = React.useState([]);
+
+    // Bulk upload state
+    const [bulkUploadMsg, setBulkUploadMsg] = React.useState({ type: '', text: '' });
+    const [isUploadingCSV, setIsUploadingCSV] = React.useState(false);
+
+    const sriLankanDistricts = [
+        'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
+        'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar',
+        'Vavuniya', 'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee',
+        'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
+        'Moneragala', 'Ratnapura', 'Kegalle'
+    ];
 
     React.useEffect(() => {
         if (!user.token) return;
@@ -766,6 +782,95 @@ export default function AdminDashboard() {
         setDestImagePreview('');
         setDestinationMsg({ type: '', text: '' });
         setShowDestinationModal(false);
+        setDistrictSearch('');
+        setShowDistrictDropdown(false);
+    };
+
+    // District dropdown handlers
+    const handleDistrictInputChange = (e) => {
+        const value = e.target.value;
+        setNewDestination({ ...newDestination, district: value });
+        setDistrictSearch(value);
+
+        if (value.length > 0) {
+            const filtered = sriLankanDistricts.filter(d =>
+                d.toLowerCase().includes(value.toLowerCase())
+            );
+            setFilteredDistricts(filtered);
+            setShowDistrictDropdown(true);
+        } else {
+            setShowDistrictDropdown(false);
+        }
+    };
+
+    const handleDistrictSelect = (district) => {
+        setNewDestination({ ...newDestination, district });
+        setDistrictSearch(district);
+        setShowDistrictDropdown(false);
+    };
+
+    const handleDistrictInputFocus = () => {
+        if (districtSearch.length > 0) {
+            const filtered = sriLankanDistricts.filter(d =>
+                d.toLowerCase().includes(districtSearch.toLowerCase())
+            );
+            setFilteredDistricts(filtered);
+        } else {
+            setFilteredDistricts(sriLankanDistricts);
+        }
+        setShowDistrictDropdown(true);
+    };
+
+    const handleDistrictInputBlur = () => {
+        setTimeout(() => setShowDistrictDropdown(false), 200);
+    };
+
+    // Bulk upload handler
+    const handleBulkUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.csv')) {
+            setBulkUploadMsg({ type: 'error', text: 'Please upload a CSV file' });
+            return;
+        }
+
+        setIsUploadingCSV(true);
+        const formData = new FormData();
+        formData.append('csvFile', file);
+
+        try {
+            const res = await fetch('http://localhost:5000/api/destinations/bulk-upload', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${user.token}` },
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                setBulkUploadMsg({ type: 'success', text: `Successfully uploaded ${data.created} destinations!` });
+                // Refresh destinations list
+                const destRes = await fetch('http://localhost:5000/api/destinations', {
+                    headers: { Authorization: `Bearer ${user.token}` }
+                });
+                const destData = await destRes.json();
+                setDestinationsList(Array.isArray(destData) ? destData : []);
+            } else {
+                setBulkUploadMsg({
+                    type: 'error',
+                    text: data.message || 'Upload failed. Please check the format.'
+                });
+            }
+        } catch (err) {
+            setBulkUploadMsg({ type: 'error', text: 'Server error during upload' });
+        } finally {
+            setIsUploadingCSV(false);
+            e.target.value = '';
+        }
+    };
+
+    const downloadTemplate = () => {
+        window.open('http://localhost:5000/api/destinations/template', '_blank');
     };
 
     const handleDeleteAccount = async () => {
@@ -1504,6 +1609,114 @@ export default function AdminDashboard() {
                         </button>
                     </div>
 
+                    {/* Bulk Upload Section */}
+                    <div style={{
+                        background: 'white',
+                        padding: '32px',
+                        borderRadius: '32px',
+                        border: '1px solid var(--outline-variant)',
+                        marginBottom: '32px'
+                    }}>
+                        <h3 style={{
+                            fontFamily: "'Outfit'",
+                            color: '#0f2318',
+                            fontSize: '1.2rem',
+                            fontWeight: 700,
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                        }}>
+                            <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>upload_file</span>
+                            Bulk Upload Destinations
+                        </h3>
+                        <p style={{
+                            color: '#64748b',
+                            fontSize: '0.875rem',
+                            marginBottom: '24px'
+                        }}>Upload multiple destinations at once using a CSV file.</p>
+
+                        <div style={{
+                            display: 'flex',
+                            gap: '16px',
+                            alignItems: 'center',
+                            flexWrap: 'wrap'
+                        }}>
+                            {/* Download Template Button */}
+                            <button
+                                type="button"
+                                onClick={downloadTemplate}
+                                style={{
+                                    background: 'var(--surface-container)',
+                                    color: 'var(--primary)',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '12px',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    fontFamily: "'Outfit'",
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = 'var(--surface-container-high)'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'var(--surface-container)'}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>download</span>
+                                Download Template
+                            </button>
+
+                            {/* Upload CSV Button */}
+                            <label
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: isUploadingCSV ? 'var(--surface-container)' : 'var(--primary)',
+                                    color: isUploadingCSV ? '#64748b' : 'white',
+                                    padding: '10px 20px',
+                                    borderRadius: '12px',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    fontFamily: "'Outfit'",
+                                    cursor: isUploadingCSV ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s',
+                                    opacity: isUploadingCSV ? 0.6 : 1
+                                }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                                    {isUploadingCSV ? 'hourglass_empty' : 'folder_open'}
+                                </span>
+                                {isUploadingCSV ? 'Uploading...' : 'Upload CSV File'}
+                                <input
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={handleBulkUpload}
+                                    style={{ display: 'none' }}
+                                    disabled={isUploadingCSV}
+                                />
+                            </label>
+                        </div>
+
+                        {bulkUploadMsg.text && (
+                            <div style={{
+                                marginTop: '20px',
+                                marginBottom: 0,
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                                background: bulkUploadMsg.type === 'error' ? '#fef2f2' : '#f0fdf4',
+                                color: bulkUploadMsg.type === 'error' ? '#dc2626' : '#16a34a',
+                                border: `1px solid ${bulkUploadMsg.type === 'error' ? '#fecaca' : '#bbf7d0'}`
+                            }}>
+                                {bulkUploadMsg.text}
+                            </div>
+                        )}
+                    </div>
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
                         {/* Add/Edit Destination Modal */}
@@ -1572,7 +1785,7 @@ export default function AdminDashboard() {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div>
+                                                <div style={{ position: 'relative' }}> {/* ← ADD THIS: Make this the positioning context */}
                                                     <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px', paddingLeft: '4px' }}>District</label>
                                                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                                         <span className="material-symbols-outlined" style={{ position: 'absolute', left: '16px', color: 'var(--primary)', opacity: 0.6 }}>map</span>
@@ -1581,11 +1794,53 @@ export default function AdminDashboard() {
                                                             className="input-field"
                                                             style={{ paddingLeft: '48px' }}
                                                             value={newDestination.district}
-                                                            onChange={e => setNewDestination({ ...newDestination, district: e.target.value })}
+                                                            onChange={handleDistrictInputChange}
+                                                            onFocus={handleDistrictInputFocus}
+                                                            onBlur={handleDistrictInputBlur}
                                                             required
-                                                            placeholder="e.g. Kandy"
+                                                            placeholder="Type to search districts..."
+                                                            autoComplete="off"
                                                         />
                                                     </div>
+                                                    {showDistrictDropdown && (
+                                                        <ul style={{
+                                                            position: 'absolute',
+                                                            top: '100%',
+                                                            left: 0,
+                                                            right: 0,
+                                                            background: 'white',
+                                                            border: '2px solid var(--surface-container-high)',
+                                                            borderRadius: '14px',
+                                                            marginTop: '4px',
+                                                            maxHeight: '200px',
+                                                            overflowY: 'auto',
+                                                            zIndex: 9999,
+                                                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                                                        }}>
+                                                            {filteredDistricts.length > 0 ? (
+                                                                filteredDistricts.map(district => (
+                                                                    <div
+                                                                        key={district}
+                                                                        onClick={() => handleDistrictSelect(district)}
+                                                                        style={{
+                                                                            padding: '12px 16px',
+                                                                            cursor: 'pointer',
+                                                                            borderBottom: '1px solid var(--surface-container-high)',
+                                                                            transition: 'background 0.2s',
+                                                                            color: newDestination.district === district ? 'var(--primary)' : 'var(--on-surface)',
+                                                                            fontWeight: newDestination.district === district ? 700 : 400
+                                                                        }}
+                                                                        onMouseOver={(e) => e.target.style.background = 'var(--surface-container-low)'}
+                                                                        onMouseOut={(e) => e.target.style.background = 'white'}
+                                                                    >
+                                                                        {district}
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <div style={{ padding: '12px 16px', color: '#64748b' }}>No districts found</div>
+                                                            )}
+                                                        </ul>
+                                                    )}
                                                 </div>
                                             </div>
 

@@ -2,4 +2,3 @@
 /server/node_modules
 /server/uploads
 /server/.env
-/client/.env

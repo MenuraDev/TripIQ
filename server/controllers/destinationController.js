@@ -1,5 +1,7 @@
 // server\controllers\destinationController.js
 const { Destination, UserFavorite } = require('../models');
+const fs = require('fs');
+const csv = require('csv-parser');
 
 
 // @desc    Get all destinations
@@ -49,6 +51,97 @@ const createDestination = async (req, res) => {
         res.status(201).json(newDestination);
     } catch (error) {
         res.status(500).json({ message: 'Error creating destination', error: error.message });
+    }
+};
+
+// @desc    Bulk create destinations from CSV
+// @route   POST /api/destinations/bulk-upload
+// @access  Admin
+const bulkUploadDestinations = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No CSV file uploaded' });
+        }
+
+        const results = [];
+        const errors = [];
+        const validDistricts = [
+            'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
+            'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar',
+            'Vavuniya', 'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee',
+            'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
+            'Moneragala', 'Ratnapura', 'Kegalle'
+        ];
+
+        fs.createReadStream(req.file.path)
+            .pipe(csv())
+            .on('data', (row) => {
+                results.push(row);
+            })
+            .on('end', async () => {
+                const createdDestinations = [];
+
+                for (let i = 0; i < results.length; i++) {
+                    const row = results[i];
+                    const rowNum = i + 2; // Excel row number (header is row 1)
+
+                    // Validate required fields
+                    if (!row.name || !row.name.trim()) {
+                        errors.push({ row: rowNum, field: 'name', message: 'Name is required' });
+                        continue;
+                    }
+
+                    if (!row.district || !row.district.trim()) {
+                        errors.push({ row: rowNum, field: 'district', message: 'District is required' });
+                        continue;
+                    }
+
+                    // Validate district
+                    const normalizedDistrict = row.district.trim();
+                    if (!validDistricts.includes(normalizedDistrict)) {
+                        errors.push({
+                            row: rowNum,
+                            field: 'district',
+                            message: `Invalid district. Must be one of: ${validDistricts.join(', ')}`
+                        });
+                        continue;
+                    }
+
+                    try {
+                        const newDestination = await Destination.create({
+                            name: row.name.trim(),
+                            category: row.category ? row.category.trim() : '',
+                            district: normalizedDistrict,
+                            lat: row.lat ? parseFloat(row.lat) : null,
+                            lng: row.lng ? parseFloat(row.lng) : null,
+                            description: row.description ? row.description.trim() : '',
+                            image_url: row.image_url ? row.image_url.trim() : ''
+                        });
+                        createdDestinations.push(newDestination);
+                    } catch (err) {
+                        errors.push({ row: rowNum, field: 'database', message: err.message });
+                    }
+                }
+
+                // Clean up uploaded file
+                fs.unlinkSync(req.file.path);
+
+                if (errors.length > 0) {
+                    return res.status(400).json({
+                        message: 'Bulk upload completed with errors',
+                        created: createdDestinations.length,
+                        errors: errors
+                    });
+                }
+
+                res.status(201).json({
+                    message: 'All destinations uploaded successfully',
+                    created: createdDestinations.length,
+                    destinations: createdDestinations
+                });
+            });
+    } catch (error) {
+        res.status(500).json({ message: 'Error processing CSV file', error: error.message });
     }
 };
 
@@ -142,6 +235,7 @@ module.exports = {
     getAllDestinations,
     getDestinationById,
     createDestination,
+    bulkUploadDestinations,
     updateDestination,
     deleteDestination,
     getFavorites,

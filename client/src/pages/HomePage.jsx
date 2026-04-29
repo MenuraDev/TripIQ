@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PageToggle from '../components/PageToggle';
+import DashboardProfileMenu from '../components/DashboardProfileMenu';
 
 const NAV_LINKS = ["Vehicles", "About", "Reviews", "Contact"];
 
@@ -218,6 +219,8 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const [publicReviews, setPublicReviews] = useState([]);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [fleetVehicles, setFleetVehicles] = useState([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(true);
 
   useEffect(() => {
     // Check if user is logged in
@@ -232,6 +235,33 @@ export default function App() {
       .then(data => setPublicReviews(Array.isArray(data) ? data : []))
       .catch(console.error);
 
+    // Load Fleet Vehicles from Database
+    fetch('http://localhost:5000/api/vehicles/all')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Transform API data to match UI format
+          const transformedVehicles = data.map(vehicle => ({
+            id: vehicle.id,
+            name: vehicle.type,
+            seats: `${vehicle.capacity} passengers`,
+            image: vehicle.image_url ? `http://localhost:5000${vehicle.image_url}` : "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&auto=format&fit=crop&q=60",
+            features: [
+              vehicle.condition || "Good Condition",
+              "AC",
+              "GPS Navigation"
+            ],
+            price: `$${vehicle.price_per_day}/day`,
+            badge: vehicle.status === 'active' ? 'Available' : 'Unavailable'
+          }));
+          setFleetVehicles(transformedVehicles);
+        }
+        setLoadingVehicles(false);
+      })
+      .catch(err => {
+        console.error('Error fetching vehicles:', err);
+        setLoadingVehicles(false);
+      });
     const handler = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
@@ -612,46 +642,71 @@ export default function App() {
           </AnimatedSection>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 28 }}>
-            {VEHICLES.map((v, i) => (
-              <AnimatedSection key={v.name} delay={i * 80}>
-                <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%", border: "1px solid #e8f5e9" }}>
-                  <div style={{ position: "relative", height: 200, overflow: "hidden" }}>
-                    <img src={v.image} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.6s ease" }}
-                      onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-                      onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-                    />
-                    <div style={{ position: "absolute", top: 16, right: 16, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(4px)", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 700, color: "#1a6b2e", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>{v.badge}</div>
-                  </div>
-
-                  <div style={{ padding: 28, flex: 1, display: "flex", flexDirection: "column" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                      <h3 style={{ fontSize: 24, fontWeight: 700, color: "#0f2318", margin: 0, fontFamily: "'Playfair Display', serif" }}>{v.name}</h3>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#6b8f6b", fontSize: 14, marginBottom: 24, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
-                      <span style={{ fontSize: 16 }}>👥</span> {v.seats}
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
-                      {v.features.map(feat => (
-                        <div key={feat} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <span style={{ color: "#2d9e4f", fontSize: 14, fontWeight: 900 }}>✓</span>
-                          <span style={{ fontSize: 14.5, color: "#4a6b4a", fontFamily: "'DM Sans', sans-serif" }}>{feat}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", paddingTop: 24, marginTop: 24, borderTop: "1px solid #f0f7f0" }}>
-                      <div>
-                        <div style={{ fontSize: 12, color: "#6b8f6b", fontFamily: "'DM Sans', sans-serif", marginBottom: 4, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5 }}>Starting at</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: "#1a6b2e", fontFamily: "'DM Sans', sans-serif" }}>{v.price}</div>
+            {loadingVehicles ? (
+              // Loading state
+              [1, 2, 3].map((n) => (
+                <AnimatedSection key={n} delay={n * 80}>
+                  <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%", border: "1px solid #e8f5e9" }}>
+                    <div style={{ position: "relative", height: 200, overflow: "hidden", background: "#f0f7f0" }}></div>
+                    <div style={{ padding: 28, flex: 1, display: "flex", flexDirection: "column" }}>
+                      <div style={{ height: 24, background: "#f0f7f0", borderRadius: 4, marginBottom: 16 }}></div>
+                      <div style={{ height: 16, background: "#f0f7f0", borderRadius: 4, marginBottom: 24, width: "60%" }}></div>
+                      <div style={{ flex: 1 }}></div>
+                      <div style={{ paddingTop: 24, marginTop: 24, borderTop: "1px solid #f0f7f0" }}>
+                        <div style={{ height: 20, background: "#f0f7f0", borderRadius: 4, width: "40%" }}></div>
                       </div>
-                      <button onClick={() => navigate("/login")} className="btn-primary" style={{ padding: "12px 24px", fontSize: 14.5 }}>Book Now</button>
                     </div>
                   </div>
-                </div>
-              </AnimatedSection>
-            ))}
+                </AnimatedSection>
+              ))
+            ) : fleetVehicles.length > 0 ? (
+              // Display vehicles from database
+              fleetVehicles.map((v, i) => (
+                <AnimatedSection key={v.id || v.name} delay={i * 80}>
+                  <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", height: "100%", border: "1px solid #e8f5e9", maxWidth: 400, margin: "0 auto", width: "100%" }}>
+                    <div style={{ position: "relative", height: 200, overflow: "hidden" }}>
+                      <img src={v.image} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.6s ease" }}
+                        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+                        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                      />
+                      <div style={{ position: "absolute", top: 16, right: 16, background: "rgba(255,255,255,0.95)", backdropFilter: "blur(4px)", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 700, color: "#1a6b2e", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>{v.badge}</div>
+                    </div>
+
+                    <div style={{ padding: 28, flex: 1, display: "flex", flexDirection: "column" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                        <h3 style={{ fontSize: 24, fontWeight: 700, color: "#0f2318", margin: 0, fontFamily: "'Playfair Display', serif" }}>{v.name}</h3>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#6b8f6b", fontSize: 14, marginBottom: 24, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                        <span style={{ fontSize: 16 }}>👥</span> {v.seats}
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+                        {v.features.map(feat => (
+                          <div key={feat} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ color: "#2d9e4f", fontSize: 14, fontWeight: 900 }}>✓</span>
+                            <span style={{ fontSize: 14.5, color: "#4a6b4a", fontFamily: "'DM Sans', sans-serif" }}>{feat}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", paddingTop: 24, marginTop: 24, borderTop: "1px solid #f0f7f0" }}>
+                        <div>
+                          <div style={{ fontSize: 12, color: "#6b8f6b", fontFamily: "'DM Sans', sans-serif", marginBottom: 4, fontWeight: 500, textTransform: "uppercase", letterSpacing: 0.5 }}>Starting at</div>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: "#1a6b2e", fontFamily: "'DM Sans', sans-serif" }}>{v.price}</div>
+                        </div>
+                        <button onClick={() => navigate("/login")} className="btn-primary" style={{ padding: "12px 24px", fontSize: 14.5 }}>Book Now</button>
+                      </div>
+                    </div>
+                  </div>
+                </AnimatedSection>
+              ))
+            ) : (
+              // No vehicles fallback
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
+                <p style={{ fontSize: 18, color: "#6b8f6b", fontFamily: "'DM Sans', sans-serif" }}>No vehicles available at the moment. Please check back later.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

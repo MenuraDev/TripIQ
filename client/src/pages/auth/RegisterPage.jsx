@@ -1,5 +1,5 @@
 // client\src\pages\auth\RegisterPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 const styles = `
@@ -32,6 +32,8 @@ const styles = `
   .auth-footer a { color: #2d9e4f; font-weight: 600; text-decoration: none; transition: color 0.2s; }
   .auth-footer a:hover { color: #1a6b2e; text-decoration: underline; }
   .error-msg { background: #fee2e2; color: #b91c1c; padding: 12px; border-radius: 12px; font-size: 0.9rem; margin-bottom: 20px; text-align: center; border: 1px solid #fca5a5; }
+  .recaptcha-container { margin: 20px 0; display: flex; justify-content: center; min-height: 78px; }
+  .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
 `;
 
 export default function RegisterPage() {
@@ -47,8 +49,101 @@ export default function RegisterPage() {
         confirmPassword: ''
     });
     const [error, setError] = useState('');
+    const [recaptchaToken, setRecaptchaToken] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const recaptchaWidgetId = useRef(null);
+    const recaptchaContainerRef = useRef(null);
 
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'name' && /\d/.test(value)) return; // Prevent numbers in full name
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const getPasswordStrength = (pwd) => {
+        if (!pwd) return { label: '', color: 'transparent' };
+        let score = 0;
+        if (pwd.length >= 8) score += 1;
+        if (/[A-Z]/.test(pwd)) score += 1;
+        if (/[0-9]/.test(pwd)) score += 1;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) score += 1;
+
+        if (score <= 2) return { label: 'Weak', color: '#ef4444' };
+        if (score === 3) return { label: 'Good', color: '#f59e0b' };
+        return { label: 'Strong', color: '#10b981' };
+    };
+
+    // Load reCAPTCHA script if not already loaded
+    useEffect(() => {
+        const loadRecaptcha = () => {
+            if (window.grecaptcha && window.grecaptcha.render) {
+                renderRecaptchaWidget();
+            } else {
+                // Check if script is already in DOM
+                let script = document.querySelector('script[src="https://www.google.com/recaptcha/api.js"]');
+                if (!script) {
+                    script = document.createElement('script');
+                    script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
+                    script.async = true;
+                    script.defer = true;
+                    document.body.appendChild(script);
+                }
+                
+                // Set global callback
+                window.onRecaptchaLoad = () => {
+                    renderRecaptchaWidget();
+                };
+            }
+        };
+
+        const renderRecaptchaWidget = () => {
+            if (recaptchaContainerRef.current && window.grecaptcha) {
+                try {
+                    const widgetId = window.grecaptcha.render(recaptchaContainerRef.current, {
+                        sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',
+                        callback: handleRecaptchaChange,
+                        'expired-callback': handleRecaptchaExpired,
+                        'error-callback': handleRecaptchaError,
+                    });
+                    recaptchaWidgetId.current = widgetId;
+                } catch (err) {
+                    console.error('Failed to render reCAPTCHA:', err);
+                    setError('Failed to load reCAPTCHA. Please refresh the page.');
+                }
+            }
+        };
+
+        loadRecaptcha();
+
+        // Cleanup on unmount
+        return () => {
+            if (recaptchaWidgetId.current !== null && window.grecaptcha) {
+                try {
+                    window.grecaptcha.reset(recaptchaWidgetId.current);
+                } catch (err) {
+                    // Ignore cleanup errors
+                }
+            }
+        };
+    }, []);
+
+    // Handle reCAPTCHA change
+    const handleRecaptchaChange = (token) => {
+        setRecaptchaToken(token);
+        setError(''); // Clear any previous reCAPTCHA errors
+    };
+
+    // Handle reCAPTCHA expiration
+    const handleRecaptchaExpired = () => {
+        setRecaptchaToken(null);
+        setError('reCAPTCHA expired. Please verify again.');
+    };
+
+    // Handle reCAPTCHA error
+    const handleRecaptchaError = () => {
+        setRecaptchaToken(null);
+        setError('reCAPTCHA verification failed. Please try again.');
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -72,9 +167,20 @@ export default function RegisterPage() {
             return setError("License number is required for drivers");
         }
 
-        if (formData.password.length < 6) return setError("Password must be at least 6 characters long");
+        const pwd = formData.password;
+        if (pwd.length < 8) return setError("Password must be at least 8 characters long");
+        if (!/[A-Z]/.test(pwd)) return setError("Password must contain at least 1 capital letter");
+        if (!/[0-9]/.test(pwd)) return setError("Password must contain at least 1 number");
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) return setError("Password must contain at least 1 special character");
         if (formData.password !== formData.confirmPassword) return setError("Passwords do not match");
 
+        // Verify reCAPTCHA
+        if (!recaptchaToken) {
+            setError('Please complete the reCAPTCHA verification');
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
             const res = await fetch('http://localhost:5000/api/auth/register', {
                 method: 'POST',
@@ -86,23 +192,37 @@ export default function RegisterPage() {
                     email: formData.email,
                     phone: formData.phone,
                     license_no: formData.license_no,
-                    password: formData.password
+                    password: formData.password,
+                    recaptchaToken: recaptchaToken,
                 }),
             });
             const data = await res.json();
 
             if (res.ok) {
-                localStorage.setItem('user', JSON.stringify(data));
-                if (data.role === 'driver') {
-                    navigate('/driver-dashboard');
-                } else {
-                    navigate('/user-dashboard');
-                }
+                // Store email for verification
+                localStorage.setItem('pending_verification_email', formData.email);
+
+                // Show success message and redirect to verification page
+                setError('');
+                alert('Registration successful! Please check your email for the verification code.');
+                navigate('/verify-email');
             } else {
                 setError(data.message || 'Registration failed');
+                // Reset reCAPTCHA on failure
+                if (window.grecaptcha && recaptchaWidgetId.current !== null) {
+                    window.grecaptcha.reset(recaptchaWidgetId.current);
+                }
+                setRecaptchaToken(null);
             }
         } catch (err) {
             setError('Server Error. Please try again.');
+            // Reset reCAPTCHA on error
+            if (window.grecaptcha && recaptchaWidgetId.current !== null) {
+                window.grecaptcha.reset(recaptchaWidgetId.current);
+            }
+            setRecaptchaToken(null);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -170,17 +290,30 @@ export default function RegisterPage() {
                         )}
 
                         <div className="form-row-group">
-                            <div className="form-group">
+                            <div className="form-group" style={{ position: 'relative' }}>
                                 <label>Password</label>
                                 <input type="password" name="password" required placeholder="••••••••" value={formData.password} onChange={handleChange} />
+                                {formData.password && (
+                                    <div style={{ marginTop: '8px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ flex: 1, height: '4px', background: '#d4edda', borderRadius: '2px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: getPasswordStrength(formData.password).label === 'Weak' ? '33%' : getPasswordStrength(formData.password).label === 'Good' ? '66%' : '100%', background: getPasswordStrength(formData.password).color, transition: 'all 0.3s' }}></div>
+                                        </div>
+                                        <span style={{ color: getPasswordStrength(formData.password).color }}>{getPasswordStrength(formData.password).label}</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="form-group">
                                 <label>Confirm Password</label>
                                 <input type="password" name="confirmPassword" required placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} />
                             </div>
                         </div>
+                        
+                        {/* reCAPTCHA Widget */}
+                        <div className="recaptcha-container" ref={recaptchaContainerRef}></div>
 
-                        <button className="auth-btn" type="submit">Sign Up as {role === 'driver' ? 'Driver' : 'Traveler'}</button>
+                        <button className="auth-btn" type="submit" disabled={isSubmitting || !recaptchaToken}>
+                            {isSubmitting ? 'Creating Account...' : `Sign Up as ${role === 'driver' ? 'Driver' : 'Traveler'}`}
+                        </button>
                     </form>
 
                     <div className="auth-footer">

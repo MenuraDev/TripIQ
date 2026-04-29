@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 const styles = `
@@ -31,17 +31,102 @@ const styles = `
   .social-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border: 1px solid #d4edda; border-radius: 12px; background: white; color: #0f2318; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
   .social-btn:hover { background: #f0faf2; border-color: #c8e6c9; }
   .social-icon { width: 20px; height: 20px; }
+  .recaptcha-container { margin: 20px 0; display: flex; justify-content: center; min-height: 78px; }
+  .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
 `;
 
 export default function LoginPage() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ identifier: '', password: '' });
     const [error, setError] = useState('');
+    const [recaptchaToken, setRecaptchaToken] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const recaptchaWidgetId = useRef(null);
+    const recaptchaContainerRef = useRef(null);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+    // Load reCAPTCHA script if not already loaded
+    useEffect(() => {
+        const loadRecaptcha = () => {
+            if (window.grecaptcha && window.grecaptcha.render) {
+                renderRecaptchaWidget();
+            } else {
+                // Check if script is already in DOM
+                let script = document.querySelector('script[src="https://www.google.com/recaptcha/api.js"]');
+                if (!script) {
+                    script = document.createElement('script');
+                    script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
+                    script.async = true;
+                    script.defer = true;
+                    document.body.appendChild(script);
+                }
+
+                // Set global callback
+                window.onRecaptchaLoad = () => {
+                    renderRecaptchaWidget();
+                };
+            }
+        };
+
+        const renderRecaptchaWidget = () => {
+            if (recaptchaContainerRef.current && window.grecaptcha) {
+                try {
+                    const widgetId = window.grecaptcha.render(recaptchaContainerRef.current, {
+                        sitekey: process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',
+                        callback: handleRecaptchaChange,
+                        'expired-callback': handleRecaptchaExpired,
+                        'error-callback': handleRecaptchaError,
+                    });
+                    recaptchaWidgetId.current = widgetId;
+                } catch (err) {
+                    console.error('Failed to render reCAPTCHA:', err);
+                    setError('Failed to load reCAPTCHA. Please refresh the page.');
+                }
+            }
+        };
+
+        loadRecaptcha();
+
+        // Cleanup on unmount
+        return () => {
+            if (recaptchaWidgetId.current !== null && window.grecaptcha) {
+                try {
+                    window.grecaptcha.reset(recaptchaWidgetId.current);
+                } catch (err) {
+                    // Ignore cleanup errors
+                }
+            }
+        };
+    }, []);
+
+    // Handle reCAPTCHA change
+    const handleRecaptchaChange = (token) => {
+        setRecaptchaToken(token);
+        setError(''); // Clear any previous reCAPTCHA errors
+    };
+
+    // Handle reCAPTCHA expiration
+    const handleRecaptchaExpired = () => {
+        setRecaptchaToken(null);
+        setError('reCAPTCHA expired. Please verify again.');
+    };
+
+    // Handle reCAPTCHA error
+    const handleRecaptchaError = () => {
+        setRecaptchaToken(null);
+        setError('reCAPTCHA verification failed. Please try again.');
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!recaptchaToken) {
+            setError('Please complete the reCAPTCHA verification');
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
             const res = await fetch('http://localhost:5000/api/auth/login', {
                 method: 'POST',
@@ -50,6 +135,7 @@ export default function LoginPage() {
                     password: formData.password,
                     email: formData.identifier,
                     username: formData.identifier,
+                    recaptchaToken: recaptchaToken,
                 }),
             });
             const data = await res.json();
@@ -59,11 +145,31 @@ export default function LoginPage() {
                 if (data.role === 'admin') navigate('/admin-dashboard');
                 else if (data.role === 'driver') navigate('/driver-dashboard');
                 else navigate('/user-dashboard');
+            } else if (res.status === 403 && data.requires_verification) {
+                // Email needs verification
+                localStorage.setItem('pending_verification_email', data.email);
+                setError(data.message);
+                // Redirect to verification page after a short delay
+                setTimeout(() => {
+                    navigate('/verify-email');
+                }, 2000);
             } else {
                 setError(data.message || 'Login failed');
+                // Reset reCAPTCHA on failure
+                if (window.grecaptcha && recaptchaWidgetId.current !== null) {
+                    window.grecaptcha.reset(recaptchaWidgetId.current);
+                }
+                setRecaptchaToken(null);
             }
         } catch (err) {
             setError('Server Error. Please try again.');
+            // Reset reCAPTCHA on error
+            if (window.grecaptcha && recaptchaWidgetId.current !== null) {
+                window.grecaptcha.reset(recaptchaWidgetId.current);
+            }
+            setRecaptchaToken(null);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -104,8 +210,17 @@ export default function LoginPage() {
                         <div className="form-group">
                             <label>Password</label>
                             <input type="password" name="password" required placeholder="••••••••" value={formData.password} onChange={handleChange} />
+                            <div style={{ textAlign: 'right', marginTop: '8px' }}>
+                                <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: '#2d9e4f', textDecoration: 'none', fontWeight: 600 }}>Forgot Password?</Link>
+                            </div>
                         </div>
-                        <button className="auth-btn" type="submit">Sign In</button>
+
+                        {/* reCAPTCHA Widget */}
+                        <div className="recaptcha-container" ref={recaptchaContainerRef}></div>
+
+                        <button className="auth-btn" type="submit" disabled={isSubmitting || !recaptchaToken}>
+                            {isSubmitting ? 'Signing In...' : 'Sign In'}
+                        </button>
                     </form>
 
                     <div className="divider">OR</div>

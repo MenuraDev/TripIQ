@@ -1,4 +1,4 @@
-const { Vehicle, Driver } = require('../models');
+const { Vehicle, Driver, Booking } = require('../models');
 
 // @desc    Get all vehicles (public)
 // @route   GET /api/vehicles/all
@@ -7,7 +7,10 @@ const getAllVehicles = async (req, res) => {
     try {
         const vehicles = await Vehicle.findAll({
             where: { status: 'active' },
-            include: [{ model: Driver, attributes: ['name', 'phone', 'license_no'] }]
+            include: [
+                { model: Driver, attributes: ['name', 'phone', 'license_no'] },
+                { model: Booking, attributes: ['status'] }
+            ]
         });
         res.json(vehicles);
     } catch (error) {
@@ -36,19 +39,12 @@ const addVehicle = async (req, res) => {
     try {
         const { type, capacity, price_per_day, condition, image_url } = req.body;
 
-        // VEHICLE VALIDATION: Type required and not empty
-        if (!type || !type.trim()) {
-            return res.status(400).json({ message: 'Vehicle type is required' });
+        if (!price_per_day || price_per_day <= 0) {
+            return res.status(400).json({ message: "Price per day must be a positive number" });
         }
 
-        // VEHICLE VALIDATION: Capacity must be positive number
-        if (!capacity || parseInt(capacity) <= 0) {
-            return res.status(400).json({ message: 'Capacity must be a positive number' });
-        }
-
-        // VEHICLE VALIDATION: Price per day must be positive number
-        if (!price_per_day || parseFloat(price_per_day) <= 0) {
-            return res.status(400).json({ message: 'Price per day must be a positive number' });
+        if (capacity !== undefined && capacity <= 0) {
+            return res.status(400).json({ message: "Capacity must be a positive number" });
         }
 
         const newVehicle = await Vehicle.create({
@@ -88,36 +84,19 @@ const updateVehicle = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized to update this vehicle' });
         }
 
-        // VEHICLE VALIDATION: Type not empty
-        if (type !== undefined && type !== null && !type.trim()) {
-            return res.status(400).json({ message: 'Vehicle type cannot be empty' });
+        if (price_per_day !== undefined && price_per_day <= 0) {
+            return res.status(400).json({ message: "Price per day must be a positive number" });
         }
 
-        // VEHICLE VALIDATION: Capacity must be positive
-        if (capacity !== undefined && capacity !== null) {
-            if (parseInt(capacity) <= 0) {
-                return res.status(400).json({ message: 'Capacity must be a positive number' });
-            }
-        }
-
-        // VEHICLE VALIDATION: Price must be positive
-        if (price_per_day !== undefined && price_per_day !== null) {
-            if (parseFloat(price_per_day) <= 0) {
-                return res.status(400).json({ message: 'Price per day must be a positive number' });
-            }
-        }
-
-        const validStatuses = ['active', 'inactive', 'maintenance'];
-
-        if (status && !validStatuses.includes(status)) {
-            return res.status(400).json({ message: "Invalid vehicle status" });
+        if (capacity !== undefined && capacity <= 0) {
+            return res.status(400).json({ message: "Capacity must be a positive number" });
         }
 
         await vehicle.update({
-            type: type !== undefined ? type : vehicle.type,
-            capacity: capacity !== undefined ? capacity : vehicle.capacity,
-            price_per_day: price_per_day !== undefined ? price_per_day : vehicle.price_per_day,
-            status: status !== undefined ? status : vehicle.status,
+            type: type || vehicle.type,
+            capacity: capacity || vehicle.capacity,
+            price_per_day: price_per_day || vehicle.price_per_day,
+            status: status || vehicle.status,
             condition: condition !== undefined ? condition : vehicle.condition,
             image_url: image_url !== undefined ? image_url : vehicle.image_url
         });

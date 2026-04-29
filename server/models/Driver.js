@@ -53,6 +53,11 @@ const Driver = sequelize.define('Driver', {
         defaultValue: 'driver',
         allowNull: false,
     },
+    email_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+    },
 }, {
     tableName: 'drivers',
     timestamps: true,

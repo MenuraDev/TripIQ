@@ -11,6 +11,7 @@ const Booking = require('./Booking');
 const Payment = require('./Payment');
 const Review = require('./Review');
 const UserFavorite = require('./UserFavorite');
+const VerificationCode = require('./VerificationCode');
 
 
 // Define Associations
@@ -40,7 +41,7 @@ Vehicle.hasMany(Booking, { foreignKey: 'vehicle_id', onDelete: 'CASCADE' });
 Booking.belongsTo(Vehicle, { foreignKey: 'vehicle_id' });
 
 // Booking <-> Payment
-Booking.hasOne(Payment, { foreignKey: 'booking_id', onDelete: 'CASCADE' });
+Booking.hasMany(Payment, { foreignKey: 'booking_id', onDelete: 'CASCADE' });
 Payment.belongsTo(Booking, { foreignKey: 'booking_id' });
 
 // Review Associations
@@ -104,5 +105,6 @@ module.exports = {
     Payment,
     Review,
     UserFavorite,
+    VerificationCode,
 };
 
