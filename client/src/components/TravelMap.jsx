@@ -48,10 +48,11 @@ function orderClusters(clusters) {
   let current = start;
   while (remaining.length > 0) {
     let closestIdx = 0, minDist = Infinity;
-    remaining.forEach((c, i) => {
+    for (let i = 0; i < remaining.length; i++) {
+      const c = remaining[i];
       const d = getDistance(current.lat, current.lon, c.lat, c.lon);
       if (d < minDist) { minDist = d; closestIdx = i; }
-    });
+    }
     const next = remaining.splice(closestIdx, 1)[0];
     ordered.push(next);
     current = next;
@@ -87,7 +88,7 @@ function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
       setRouteCoords(fullRoute);
     };
     fetchRoute();
-  }, [clusters]);
+  }, [airport, orderedClusters, validClusters.length]);
 
   if (validClusters.length === 0) return null;
 

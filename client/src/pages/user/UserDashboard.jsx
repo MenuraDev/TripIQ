@@ -692,7 +692,6 @@ export default function UserDashboard() {
     navigate('/login');
   };
 
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
   const [showOtpForm, setShowOtpForm] = useState(false);
   const otpInputRefs = useRef([]);
@@ -734,7 +733,7 @@ export default function UserDashboard() {
     } else {
       fetchData();
     }
-  }, [location.state, location.search]);
+  }, [location.state, location.search, navigate, user.token]);
 
   const fetchData = async () => {
     try {
@@ -938,7 +937,7 @@ export default function UserDashboard() {
         setSelectedVehicle(available[0]); // Default to cheapest matching
       }
     }
-  }, [workflowStep, planParams, vehicles]);
+  }, [workflowStep, planParams, vehicles, getAvailableVehicles, selectedVehicle]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -1355,7 +1354,6 @@ export default function UserDashboard() {
 
   const upcomingTrips = Array.isArray(trips) ? trips.filter(t => new Date(t.end_date) >= new Date()) : [];
   const pastTrips = Array.isArray(trips) ? trips.filter(t => new Date(t.end_date) < new Date()) : [];
-  const filteredVehicles = Array.isArray(vehicles) ? vehicles.filter(v => v.capacity >= planParams.groupSize) : [];
 
   const renderSidebar = () => (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>

@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PageToggle from '../components/PageToggle';
-import DashboardProfileMenu from '../components/DashboardProfileMenu';
 
 const NAV_LINKS = ["Vehicles", "About", "Reviews", "Contact"];
 
@@ -61,35 +60,6 @@ const BENEFITS = [
   { icon: "📱", text: "Easy planning process" },
   { icon: "🌿", text: "Supports Sri Lanka tourism" },
 ];
-
-const VEHICLES = [
-  {
-    name: "Sedan",
-    seats: "1–4 passengers",
-    image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&auto=format&fit=crop&q=60",
-    features: ["AC", "GPS Navigation", "WiFi Hotspot"],
-    price: "$45/day",
-    badge: "Most Popular",
-  },
-  {
-    name: "SUV",
-    seats: "1–6 passengers",
-    image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600&auto=format&fit=crop&q=60",
-    features: ["4WD", "Extra Luggage", "Premium Sound"],
-    price: "$65/day",
-    badge: "Best for Hills",
-  },
-  {
-    name: "Minivan",
-    seats: "7–10 passengers",
-    image: "https://images.unsplash.com/photo-1627705191969-e742e97aa6db?w=600&auto=format&fit=crop&q=60",
-    features: ["Spacious", "USB Charging", "Child Seats"],
-    price: "$80/day",
-    badge: "Family Choice",
-  },
-];
-
-
 
 const HERO_IMAGES = [
   { url: "https://plus.unsplash.com/premium_photo-1730145749791-28fc538d7203?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8c2lnaXJpeWF8ZW58MHx8MHx8fDA%3D", title: "Sigiriya Rock Fortress", desc: "Ancient Wonder of the World" },
@@ -814,10 +784,10 @@ export default function App() {
                 <h4 style={{ color: "white", fontWeight: 600, marginBottom: 16, fontFamily: "'DM Sans', sans-serif" }}>{col.title}</h4>
                 {col.links.map(link => (
                   <div key={link} style={{ marginBottom: 10 }}>
-                    <a href="#" style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontFamily: "'DM Sans', sans-serif", transition: "color 0.2s" }}
+                    <button type="button" onClick={() => scrollTo(link.toLowerCase())} style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontFamily: "'DM Sans', sans-serif", transition: "color 0.2s", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       onMouseEnter={e => e.target.style.color = "#52c374"}
                       onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.5)"}
-                    >{link}</a>
+                    >{link}</button>
                   </div>
                 ))}
               </div>
