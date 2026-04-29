@@ -1,5 +1,5 @@
 // client/src/components/TravelMap.jsx
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -48,11 +48,10 @@ function orderClusters(clusters) {
   let current = start;
   while (remaining.length > 0) {
     let closestIdx = 0, minDist = Infinity;
-    for (let i = 0; i < remaining.length; i++) {
-      const c = remaining[i];
+    remaining.forEach((c, i) => {
       const d = getDistance(current.lat, current.lon, c.lat, c.lon);
       if (d < minDist) { minDist = d; closestIdx = i; }
-    }
+    });
     const next = remaining.splice(closestIdx, 1)[0];
     ordered.push(next);
     current = next;
@@ -63,7 +62,7 @@ function orderClusters(clusters) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
   const [routeCoords, setRouteCoords] = useState([]);
-  const airport = useMemo(() => [7.18, 79.88], []);
+  const airport = [7.18, 79.88];
 
   const validClusters = (clusters || []).filter(c => c.lat && c.lon);
   const orderedClusters = orderClusters(validClusters);
@@ -88,7 +87,7 @@ function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
       setRouteCoords(fullRoute);
     };
     fetchRoute();
-  }, [airport, orderedClusters, validClusters.length]);
+  }, [clusters]);
 
   if (validClusters.length === 0) return null;
 

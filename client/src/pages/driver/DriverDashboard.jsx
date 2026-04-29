@@ -822,7 +822,7 @@ export default function DriverDashboard() {
                 })
                 .catch(err => console.error(err));
         }
-    }, [user]);
+    }, [user.token]);
 
     React.useEffect(() => {
         if (!user.token) return;
@@ -923,7 +923,7 @@ export default function DriverDashboard() {
             setStatusMsg('Phone number is required');
             return;
         }
-        const phoneRegex = /^[+]?[0-9\s-]{9,15}$/;
+        const phoneRegex = /^\+?[0-9\s\-]{9,15}$/;
         if (!phoneRegex.test(profileData.phone)) {
             setStatusMsg('Please enter a valid phone number');
             return;
