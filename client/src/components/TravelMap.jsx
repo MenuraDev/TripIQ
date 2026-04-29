@@ -29,6 +29,18 @@ const createIcon = (color) => new L.Icon({
 const redIcon    = createIcon('red');
 const blueIcon   = createIcon('blue');
 const greenIcon  = createIcon('green');
+const orangeIcon = createIcon('orange');
+const violetIcon = createIcon('violet');
+const yellowIcon = createIcon('gold');
+const blackIcon  = createIcon('black');
+const greyIcon   = createIcon('grey');
+
+// Day color mapping for itinerary places
+const dayColors = ['violet', 'orange', 'gold', 'blue', 'red', 'black', 'grey'];
+const getDayIcon = (dayNumber) => {
+  const color = dayColors[(dayNumber - 1) % dayColors.length];
+  return createIcon(color);
+};
 
 // ─── Haversine ────────────────────────────────────────────────────────────────
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -60,7 +72,7 @@ function orderClusters(clusters) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
+function TravelMap({ clusters, selectedPlaces, suggestions = [], itinerary = null }) {
   const [routeCoords, setRouteCoords] = useState([]);
   const airport = [7.18, 79.88];
 
@@ -95,6 +107,16 @@ function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
   const allSelectedPlaces = Object.entries(selectedPlaces || {}).flatMap(
     ([clusterName, places]) => (places || []).map(p => ({ ...p, clusterName }))
   );
+
+  // Build a map of place name to day number from itinerary
+  const placeDayMap = {};
+  if (itinerary && itinerary.itinerary) {
+    itinerary.itinerary.forEach(day => {
+      (day.places || []).forEach(placeName => {
+        placeDayMap[placeName.toLowerCase()] = day.day;
+      });
+    });
+  }
 
   return (
     <div style={{ borderRadius: '24px', overflow: 'hidden', boxShadow: '0 16px 40px rgba(0,0,0,0.08)', marginTop: '24px' }}>
@@ -134,18 +156,23 @@ function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
           </Marker>
         ))}
 
-        {/* 🏝️ Selected Place Markers (Blue) */}
-        {allSelectedPlaces.filter(p => p.lat && p.lon).map((place, i) => (
-          <Marker key={`place-${i}`} position={[place.lat, place.lon]} icon={blueIcon}>
-            <Popup>
-              <strong>{place.place}</strong><br />
-              📍 {place.clusterName}<br />
-              🏙️ {place.city}<br />
-              ⭐ {place.rating}<br />
-              🏷️ {place.category}
-            </Popup>
-          </Marker>
-        ))}
+        {/* 🏝️ Selected Place Markers - colored by day if itinerary exists */}
+        {allSelectedPlaces.filter(p => p.lat && p.lon).map((place, i) => {
+          const dayNum = placeDayMap[place.place?.toLowerCase()];
+          const icon = dayNum ? getDayIcon(dayNum) : blueIcon;
+          return (
+            <Marker key={`place-${i}`} position={[place.lat, place.lon]} icon={icon}>
+              <Popup>
+                <strong>{place.place}</strong><br />
+                📍 {place.clusterName}<br />
+                🏙️ {place.city}<br />
+                ⭐ {place.rating}<br />
+                🏷️ {place.category}
+                {dayNum && <div style={{ marginTop: '8px', fontWeight: 700, color: 'var(--primary)' }}>📅 Day {dayNum}</div>}
+              </Popup>
+            </Marker>
+          );
+        })}
 
         {/* 🔵 Route Polyline */}
         {routeCoords.length > 0 && (
@@ -162,8 +189,21 @@ function TravelMap({ clusters, selectedPlaces, suggestions = [] }) {
           <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div> Selected Clusters
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#475569' }}>
-          <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }}></div> Places / Suggestions
+          <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }}></div> Places (no itinerary)
         </div>
+        {itinerary && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#475569' }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#8b5cf6' }}></div> Day 1
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#475569' }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f97316' }}></div> Day 2
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#475569' }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#eab308' }}></div> Day 3+
+            </div>
+          </>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#475569' }}>
           <div style={{ width: 4, height: 12, background: '#1a6b2e', borderRadius: 2 }}></div> Driving Route
         </div>

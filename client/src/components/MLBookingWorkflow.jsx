@@ -19,6 +19,11 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
   const H = { 'Content-Type':'application/json', Authorization:`Bearer ${user.token}` };
   const allPlaces = Object.values(clusterPlaces).flat();
 
+  // Check if at least one place is selected from each selected cluster
+  const hasPlaceFromEveryCluster = selectedClusters.length > 0 &&
+    selectedClusters.every(c => clusterPlaces[c.cluster] && clusterPlaces[c.cluster].length > 0);
+
+
   const totalDays = dates.startDate && dates.endDate
     ? Math.max(1, Math.ceil((new Date(dates.endDate) - new Date(dates.startDate)) / 86400000))
     : 0;
@@ -181,6 +186,7 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
     for (let i = step; i < targetStep; i++) {
       if (i === 1 && (!dates.startDate || !dates.endDate || !dates.groupSize || !mlResult.suggestions?.length)) return false;
       if (i === 2 && !selectedClusters.length) return false;
+      if (i === 3 && !hasPlaceFromEveryCluster) return false;
       if (i === 3 && !allPlaces.length) return false;
       if (i === 4 && (!selectedVehicle && getAvailableVehicles().length > 0)) return false;
     }
@@ -360,7 +366,7 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
                 );
               })}
 
-              {allPlaces.length>0 && !itinerary && (
+              {hasPlaceFromEveryCluster && !itinerary && (
                 <div style={{ textAlign:'center', padding:'24px', background:'linear-gradient(135deg,rgba(27,109,46,0.05),rgba(45,158,79,0.08))', borderRadius:'20px', marginBottom:'24px' }}>
                   <p style={{ fontWeight:600, marginBottom:'14px', color:'#334155' }}>✨ Want a day-by-day itinerary for your {allPlaces.length} selected places?</p>
                   <button className="btn-primary" onClick={handleDayPlan} disabled={itinLoading} style={{ padding:'12px 32px' }}>
@@ -381,9 +387,12 @@ export default function MLBookingWorkflow({ user, vehicles: initialVehicles, edi
                 </div>
               )}
 
+              {/* Map with itinerary day colors */}
+              <TravelMap clusters={selectedClusters} selectedPlaces={mapSelectedPlaces} suggestions={[]} itinerary={itinerary} />
+
               <div className="workflow-nav">
                 <button className="btn-white" onClick={()=>setStep(2)}>Back</button>
-                <button className="btn-primary" onClick={()=>setStep(4)} disabled={!allPlaces.length} style={{ padding:'16px 48px' }}>Select Transport ➜</button>
+                <button className="btn-primary" onClick={()=>setStep(4)} disabled={!hasPlaceFromEveryCluster} style={{ padding:'16px 48px' }}>Select Transport ➜</button>
               </div>
             </div>
           )}

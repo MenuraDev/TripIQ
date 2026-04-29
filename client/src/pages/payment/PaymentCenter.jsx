@@ -231,7 +231,7 @@ export default function PaymentCenter() {
             addonTotal,
             tax,
             grandTotal: subtotal + tax,
-            totalWithDeposit: subtotal + tax + 10000
+            totalWithDeposit: subtotal + tax + 100
         };
     }, [addons, bookingDetails]);
 
@@ -636,8 +636,8 @@ export default function PaymentCenter() {
                                 <span>LKR {calculateTotal.baseCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             </div>
                             <div className="cost-row">
-                                <span>Security Deposit (Refundable)</span>
-                                <span>LKR 10,000.00</span>
+                                <span>Security Deposit</span>
+                                <span>LKR 100.00</span>
                             </div>
                             <div className="cost-row">
                                 <span style={{ color: '#059669' }}>Selected Add-ons</span>

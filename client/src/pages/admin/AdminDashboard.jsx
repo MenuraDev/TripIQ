@@ -558,6 +558,7 @@ export default function AdminDashboard() {
     // Add/Edit Destination State
     const [newDestination, setNewDestination] = React.useState({ name: '', category: '', district: '', lat: '', lng: '', description: '', image_url: '' });
     const [destinationMsg, setDestinationMsg] = React.useState({ type: '', text: '' });
+    const [categoryError, setCategoryError] = React.useState('');
     const [editingDestinationId, setEditingDestinationId] = React.useState(null);
     const [destSearch, setDestSearch] = React.useState('');
     const [destCatFilter, setDestCatFilter] = React.useState('');
@@ -689,6 +690,12 @@ export default function AdminDashboard() {
 
     const handleAddDestination = async (e) => {
         e.preventDefault();
+        const currentCategories = newDestination.category ? newDestination.category.split(', ') : [];
+        if (currentCategories.length === 0) {
+            setCategoryError('Please select at least one category');
+            return;
+        }
+
         try {
             // Validate Image presence
             if (!destImageFile && !newDestination.image_url) {
@@ -1587,6 +1594,10 @@ export default function AdminDashboard() {
                     ? currentCats.filter(c => c !== cat)
                     : [...currentCats, cat];
                 setNewDestination({ ...newDestination, category: updatedCats.join(', ') });
+
+                if (updatedCats.length > 0) {
+                    setCategoryError('');
+                }
             };
 
             return (
@@ -1846,9 +1857,19 @@ export default function AdminDashboard() {
 
                                             {/* Section 2: Atmosphere & Classification */}
                                             <div>
-                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '12px', paddingLeft: '4px' }}>Category</label>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '12px', paddingLeft: '4px' }}>
+                                                    Category <span style={{ color: 'red' }}>*</span>
+                                                </label>
 
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', background: 'var(--surface-container-low)', padding: '20px', borderRadius: '24px', border: '1px solid var(--outline-variant)' }}>
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(5, 1fr)',
+                                                    gap: '16px',
+                                                    background: 'var(--surface-container-low)',
+                                                    padding: '20px',
+                                                    borderRadius: '24px',
+                                                    border: `1px solid ${categoryError ? 'red' : 'var(--outline-variant)'}`
+                                                }}>
                                                     {categories.map(cat => (
                                                         <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: newDestination.category?.includes(cat) ? 'var(--primary)' : '#64748b', transition: '0.2s' }}>
                                                             <input
@@ -1861,20 +1882,21 @@ export default function AdminDashboard() {
                                                         </label>
                                                     ))}
                                                 </div>
+                                                {categoryError && <p style={{ color: 'red', fontSize: '0.75rem', marginTop: '8px', marginLeft: '4px' }}>{categoryError}</p>}
                                             </div>
 
                                             {/* Section 3: Geographic Coordinates & Descriptive Narrative */}
                                             <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '32px' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '-12px', paddingLeft: '4px' }}>Geography (Optional)</label>
+                                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '-12px', paddingLeft: '4px' }}>Geography</label>
                                                     <div style={{ display: 'flex', gap: '12px' }}>
                                                         <div style={{ flex: 1 }}>
                                                             <label style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Latitude</label>
-                                                            <input type="number" step="any" className="input-field" style={{ padding: '12px' }} value={newDestination.lat} onChange={e => setNewDestination({ ...newDestination, lat: e.target.value })} placeholder="0.0000" />
+                                                            <input type="number" step="any" className="input-field" style={{ padding: '12px' }} value={newDestination.lat} onChange={e => setNewDestination({ ...newDestination, lat: e.target.value })} placeholder="0.0000" required />
                                                         </div>
                                                         <div style={{ flex: 1 }}>
                                                             <label style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Longitude</label>
-                                                            <input type="number" step="any" className="input-field" style={{ padding: '12px' }} value={newDestination.lng} onChange={e => setNewDestination({ ...newDestination, lng: e.target.value })} placeholder="0.0000" />
+                                                            <input type="number" step="any" className="input-field" style={{ padding: '12px' }} value={newDestination.lng} onChange={e => setNewDestination({ ...newDestination, lng: e.target.value })} placeholder="0.0000" required />
                                                         </div>
                                                     </div>
 
