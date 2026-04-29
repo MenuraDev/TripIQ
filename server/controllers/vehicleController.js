@@ -36,12 +36,19 @@ const addVehicle = async (req, res) => {
     try {
         const { type, capacity, price_per_day, condition, image_url } = req.body;
 
-        if (!price_per_day || price_per_day <= 0) {
-            return res.status(400).json({ message: "Price per day must be a positive number" });
+        // VEHICLE VALIDATION: Type required and not empty
+        if (!type || !type.trim()) {
+            return res.status(400).json({ message: 'Vehicle type is required' });
         }
 
-        if (capacity !== undefined && capacity <= 0) {
-            return res.status(400).json({ message: "Capacity must be a positive number" });
+        // VEHICLE VALIDATION: Capacity must be positive number
+        if (!capacity || parseInt(capacity) <= 0) {
+            return res.status(400).json({ message: 'Capacity must be a positive number' });
+        }
+
+        // VEHICLE VALIDATION: Price per day must be positive number
+        if (!price_per_day || parseFloat(price_per_day) <= 0) {
+            return res.status(400).json({ message: 'Price per day must be a positive number' });
         }
 
         const newVehicle = await Vehicle.create({
@@ -81,12 +88,23 @@ const updateVehicle = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized to update this vehicle' });
         }
 
-        if (price_per_day == null || isNaN(price_per_day) || price_per_day <= 0) {
-            return res.status(400).json({ message: "Price per day must be a positive number" });
+        // VEHICLE VALIDATION: Type not empty
+        if (type !== undefined && type !== null && !type.trim()) {
+            return res.status(400).json({ message: 'Vehicle type cannot be empty' });
         }
 
-        if (capacity != null && (isNaN(capacity) || capacity <= 0)) {
-            return res.status(400).json({ message: "Capacity must be a positive number" });
+        // VEHICLE VALIDATION: Capacity must be positive
+        if (capacity !== undefined && capacity !== null) {
+            if (parseInt(capacity) <= 0) {
+                return res.status(400).json({ message: 'Capacity must be a positive number' });
+            }
+        }
+
+        // VEHICLE VALIDATION: Price must be positive
+        if (price_per_day !== undefined && price_per_day !== null) {
+            if (parseFloat(price_per_day) <= 0) {
+                return res.status(400).json({ message: 'Price per day must be a positive number' });
+            }
         }
 
         const validStatuses = ['active', 'inactive', 'maintenance'];

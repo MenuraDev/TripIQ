@@ -867,6 +867,28 @@ export default function DriverDashboard() {
         const file = e.target.files[0];
         if (!file) return;
 
+        // VEHICLE VALIDATION: Image file type - only JPEG and PNG
+        const allowedMimes = ['image/jpeg', 'image/png'];
+        const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+        
+        if (!allowedMimes.includes(file.type)) {
+            alert('Only JPEG and PNG image files are allowed');
+            return;
+        }
+        
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert('Only JPEG and PNG image files are allowed');
+            return;
+        }
+        
+        // VEHICLE VALIDATION: Image file size - max 5MB
+        const maxSizeInBytes = 5 * 1024 * 1024;
+        if (file.size > maxSizeInBytes) {
+            alert('Image file size must not exceed 5MB');
+            return;
+        }
+
         // Preview
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -923,16 +945,30 @@ export default function DriverDashboard() {
             setStatusMsg('Phone number is required');
             return;
         }
-        const phoneRegex = /^\+?[0-9\s\-]{9,15}$/;
-        if (!phoneRegex.test(profileData.phone)) {
-            setStatusMsg('Please enter a valid phone number');
+
+        // DRIVER VALIDATION: Phone number - exactly 10 digits
+        const phoneDigitsOnly = profileData.phone.replace(/\D/g, '');
+        if (phoneDigitsOnly.length !== 10) {
+            setStatusMsg('Phone number must be exactly 10 digits');
             return;
         }
 
-        // Password validation
+        // DRIVER VALIDATION: Date of Birth - not a future date
+        if (profileData.dob) {
+            const dobDate = new Date(profileData.dob);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setStatusMsg('Date of Birth cannot be a future date');
+                return;
+            }
+        }
+
+        // DRIVER VALIDATION: Password - minimum 8 characters with letter and number
         if (profileData.password) {
-            if (profileData.password.length < 6) {
-                setStatusMsg('Password must be at least 6 characters');
+            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            if (!passwordRegex.test(profileData.password)) {
+                setStatusMsg('Password must be at least 8 characters with at least one letter and one number');
                 return;
             }
             if (profileData.password !== profileData.confirmPassword) {
@@ -978,6 +1014,28 @@ export default function DriverDashboard() {
     const handleProfilePictureUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        // DRIVER VALIDATION: Profile image file type - only JPEG and PNG
+        const allowedMimes = ['image/jpeg', 'image/png'];
+        const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+        
+        if (!allowedMimes.includes(file.type)) {
+            alert('Only JPEG and PNG image files are allowed');
+            return;
+        }
+        
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert('Only JPEG and PNG image files are allowed');
+            return;
+        }
+        
+        // DRIVER VALIDATION: Profile image file size - max 5MB
+        const maxSizeInBytes = 5 * 1024 * 1024;
+        if (file.size > maxSizeInBytes) {
+            alert('Image file size must not exceed 5MB');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('profileImage', file);
@@ -1033,6 +1091,25 @@ export default function DriverDashboard() {
 
     const handleAddVehicle = async (e) => {
         e.preventDefault();
+
+        // VEHICLE VALIDATION: Type required
+        if (!newVehicle.type || !newVehicle.type.trim()) {
+            setVehicleMsg({ type: 'error', text: 'Vehicle type is required' });
+            return;
+        }
+
+        // VEHICLE VALIDATION: Capacity positive number
+        if (!newVehicle.capacity || parseInt(newVehicle.capacity) <= 0) {
+            setVehicleMsg({ type: 'error', text: 'Capacity must be a positive number' });
+            return;
+        }
+
+        // VEHICLE VALIDATION: Price positive number
+        if (!newVehicle.price_per_day || parseFloat(newVehicle.price_per_day) <= 0) {
+            setVehicleMsg({ type: 'error', text: 'Price per day must be a positive number' });
+            return;
+        }
+
         try {
             const res = await fetch('http://localhost:5000/api/vehicles', {
                 method: 'POST',
@@ -1056,6 +1133,25 @@ export default function DriverDashboard() {
 
     const handleUpdateVehicle = async (e) => {
         e.preventDefault();
+
+        // VEHICLE VALIDATION: Type not empty
+        if (!isEditing.type || !isEditing.type.trim()) {
+            setVehicleMsg({ type: 'error', text: 'Vehicle type is required' });
+            return;
+        }
+
+        // VEHICLE VALIDATION: Capacity positive number
+        if (isEditing.capacity && parseInt(isEditing.capacity) <= 0) {
+            setVehicleMsg({ type: 'error', text: 'Capacity must be a positive number' });
+            return;
+        }
+
+        // VEHICLE VALIDATION: Price positive number
+        if (isEditing.price_per_day && parseFloat(isEditing.price_per_day) <= 0) {
+            setVehicleMsg({ type: 'error', text: 'Price per day must be a positive number' });
+            return;
+        }
+
         try {
             const res = await fetch(`http://localhost:5000/api/vehicles/${isEditing.id}`, {
                 method: 'PUT',
