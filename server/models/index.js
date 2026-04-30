@@ -12,6 +12,7 @@ const Payment = require('./Payment');
 const Review = require('./Review');
 const UserFavorite = require('./UserFavorite');
 const VerificationCode = require('./VerificationCode');
+const Notification = require('./Notification');
 
 
 // Define Associations
@@ -65,6 +66,10 @@ UserFavorite.belongsTo(User, { foreignKey: 'user_id' });
 Destination.hasMany(UserFavorite, { foreignKey: 'destination_id', onDelete: 'CASCADE' });
 UserFavorite.belongsTo(Destination, { foreignKey: 'destination_id' });
 
+// User <-> Notification
+User.hasMany(Notification, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+Notification.belongsTo(User, { foreignKey: 'user_id' });
+
 
 
 const syncDB = async () => {
@@ -106,5 +111,6 @@ module.exports = {
     Review,
     UserFavorite,
     VerificationCode,
+    Notification,
 };
 

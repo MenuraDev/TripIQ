@@ -1,5 +1,6 @@
 // server\controllers\reviewController.js
 const { Review, User, Driver, Destination, Trip } = require('../models');
+const { createNotification } = require('./notificationController');
 
 // @desc    Get all reviews (for Admin)
 // @route   GET /api/reviews
@@ -170,14 +171,27 @@ const updateReview = async (req, res) => {
 const moderateReview = async (req, res) => {
     try {
         const { status } = req.body;
-        const review = await Review.findByPk(req.params.id);
+        const review = await Review.findByPk(req.params.id, {
+            include: [{ model: User, attributes: ['id', 'name', 'email'] }]
+        });
 
         if (!review) {
             return res.status(404).json({ message: 'Review not found' });
         }
 
+        const previousStatus = review.status;
         review.status = status;
         await review.save();
+
+        // Create notification if review was rejected
+        if (status === 'rejected' && previousStatus !== 'rejected') {
+            await createNotification(
+                review.user_id,
+                'review_rejected',
+                `Your review has been rejected by our admin team.`,
+                review.id
+            );
+        }
 
         res.json(review);
     } catch (error) {

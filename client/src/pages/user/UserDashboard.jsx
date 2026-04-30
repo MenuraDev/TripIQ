@@ -641,6 +641,8 @@ export default function UserDashboard() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewFormData, setReviewFormData] = useState({ type: 'Trip', targetId: '', rating: 5, comment: '' });
   const [editingReviewId, setEditingReviewId] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   // AI Planning Workflow State
   const [isAiPlanningActive, setIsAiPlanningActive] = useState(false);
@@ -739,24 +741,26 @@ export default function UserDashboard() {
   const fetchData = async () => {
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
-      const [tripsRes, favsRes, allDestsRes, vehiclesRes, paymentsRes, reviewsRes, profileRes] = await Promise.all([
+      const [tripsRes, favsRes, allDestsRes, vehiclesRes, paymentsRes, reviewsRes, profileRes, notificationsRes] = await Promise.all([
         fetch('http://localhost:5000/api/trips', { headers }),
         fetch('http://localhost:5000/api/destinations/favorites', { headers }),
         fetch('http://localhost:5000/api/destinations'),
         fetch('http://localhost:5000/api/vehicles/all'),
         fetch('http://localhost:5000/api/payments/my', { headers }),
         fetch('http://localhost:5000/api/reviews/my', { headers }),
+        fetch('http://localhost:5000/api/notifications', { headers }),
         fetch('http://localhost:5000/api/users/profile', { headers })
       ]);
 
-      const [tripsData, favsData, allDestsData, vehiclesData, paymentsData, reviewsData, profileData] = await Promise.all([
+      const [tripsData, favsData, allDestsData, vehiclesData, paymentsData, reviewsData, profileData, notificationsData] = await Promise.all([
         tripsRes.json(),
         favsRes.json(),
         allDestsRes.json(),
         vehiclesRes.json(),
         paymentsRes.json(),
         reviewsRes.json(),
-        profileRes.json()
+        profileRes.json(),
+        notificationsRes.json()
       ]);
 
       if (profileRes.ok) {
@@ -771,6 +775,11 @@ export default function UserDashboard() {
           dob: profileData.dob || '',
           profile_image: profileData.profile_image || ''
         });
+      }
+
+      if (notificationsRes.ok && notificationsData.success) {
+        setNotifications(notificationsData.data || []);
+        setUnreadNotificationCount(notificationsData.unreadCount || 0);
       }
 
       setTrips(Array.isArray(tripsData) ? tripsData : []);
@@ -796,6 +805,50 @@ export default function UserDashboard() {
       fetchData();
     } catch (err) {
       console.error('Favorite Toggle Error:', err);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (res.ok) {
+        // Refresh notifications
+        const notifRes = await fetch('http://localhost:5000/api/notifications', {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        const notifData = await notifRes.json();
+        if (notifData.success) {
+          setNotifications(notifData.data || []);
+          setUnreadNotificationCount(notifData.unreadCount || 0);
+        }
+      }
+    } catch (err) {
+      console.error('Mark as read error:', err);
+    }
+  };
+
+  const deleteNotification = async (notificationId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (res.ok) {
+        // Refresh notifications
+        const notifRes = await fetch('http://localhost:5000/api/notifications', {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        const notifData = await notifRes.json();
+        if (notifData.success) {
+          setNotifications(notifData.data || []);
+          setUnreadNotificationCount(notifData.unreadCount || 0);
+        }
+      }
+    } catch (err) {
+      console.error('Delete notification error:', err);
     }
   };
 
@@ -2682,25 +2735,50 @@ export default function UserDashboard() {
                 style={{ background: 'var(--surface-container-high)', border: 'none', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', transition: '0.2s', position: 'relative' }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>notifications</span>
-                {!hasViewedNotifications && (Array.isArray(trips) ? trips : []).filter(t => new Date(t.start_date) > new Date(new Date().setHours(0, 0, 0, 0))).length > 0 && <span style={{ position: 'absolute', top: 12, right: 12, background: '#ef4444', width: 8, height: 8, borderRadius: '50%' }}></span>}
+                {(unreadNotificationCount > 0 || (!hasViewedNotifications && (Array.isArray(trips) ? trips : []).filter(t => new Date(t.start_date) > new Date(new Date().setHours(0, 0, 0, 0))).length > 0)) && <span style={{ position: 'absolute', top: 12, right: 12, background: '#ef4444', width: 8, height: 8, borderRadius: '50%' }}></span>}
               </button>
               {showNotifications && (
                 <div style={{ position: 'absolute', top: '60px', right: '0', background: 'white', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)', width: '320px', zIndex: 100, overflow: 'hidden', border: '1px solid var(--outline-variant)' }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--outline-variant)', fontWeight: '700', color: '#0f2318' }}>Notifications</div>
                   <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                     {(() => {
+                      const hasReviewNotifications = notifications.filter(n => n.type === 'review_rejected').length > 0;
                       const upcoming = (Array.isArray(trips) ? trips : []).filter(t => new Date(t.start_date) > new Date(new Date().setHours(0, 0, 0, 0)));
-                      if (upcoming.length === 0) {
-                        return <div style={{ padding: '32px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>No upcoming trips at the moment</div>;
+                      if (!hasReviewNotifications && upcoming.length === 0) {
+                        return <div style={{ padding: '32px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>No notifications at the moment</div>;
                       }
-                      return upcoming.map(trip => {
-                        const diffDays = Math.ceil((new Date(trip.start_date) - new Date(new Date().setHours(0, 0, 0, 0))) / (1000 * 60 * 60 * 24));
-                        return (
-                          <div key={trip.id} style={{ padding: '16px 20px', borderBottom: '1px solid var(--surface-container)', fontSize: '0.9rem', color: '#64748b' }}>
-                            <div style={{ fontWeight: 600, color: '#1a2e1a', marginBottom: '4px' }}>Upcoming Trip!</div>
-                            Your trip to {trip.destination?.name || 'your destination'} is in {diffDays} {diffDays === 1 ? 'day' : 'days'}.
-                          </div>
-                        );
+                      
+                      const allNotifications = [
+                        ...notifications.filter(n => n.type === 'review_rejected').map(n => ({ ...n, notificationType: 'review' })),
+                        ...upcoming.map(t => ({ ...t, notificationType: 'trip' }))
+                      ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                      return allNotifications.map(item => {
+                        if (item.notificationType === 'review') {
+                          return (
+                            <div key={`notif-${item.id}`} style={{ padding: '16px 20px', borderBottom: '1px solid var(--surface-container)', fontSize: '0.9rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div>
+                                <div style={{ fontWeight: 600, color: '#ef4444', marginBottom: '4px' }}>Review Rejected</div>
+                                <div>{item.message}</div>
+                              </div>
+                              <button
+                                onClick={() => deleteNotification(item.id)}
+                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                                title="Delete notification"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+                              </button>
+                            </div>
+                          );
+                        } else {
+                          const diffDays = Math.ceil((new Date(item.start_date) - new Date(new Date().setHours(0, 0, 0, 0))) / (1000 * 60 * 60 * 24));
+                          return (
+                            <div key={`trip-${item.id}`} style={{ padding: '16px 20px', borderBottom: '1px solid var(--surface-container)', fontSize: '0.9rem', color: '#64748b' }}>
+                              <div style={{ fontWeight: 600, color: '#1a2e1a', marginBottom: '4px' }}>Upcoming Trip!</div>
+                              Your trip to {item.destination?.name || 'your destination'} is in {diffDays} {diffDays === 1 ? 'day' : 'days'}.
+                            </div>
+                          );
+                        }
                       });
                     })()}
                   </div>
