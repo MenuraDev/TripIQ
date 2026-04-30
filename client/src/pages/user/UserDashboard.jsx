@@ -748,8 +748,8 @@ export default function UserDashboard() {
         fetch('http://localhost:5000/api/vehicles/all'),
         fetch('http://localhost:5000/api/payments/my', { headers }),
         fetch('http://localhost:5000/api/reviews/my', { headers }),
-        fetch('http://localhost:5000/api/notifications', { headers }),
-        fetch('http://localhost:5000/api/users/profile', { headers })
+        fetch('http://localhost:5000/api/users/profile', { headers }),
+        fetch('http://localhost:5000/api/notifications', { headers })
       ]);
 
       const [tripsData, favsData, allDestsData, vehiclesData, paymentsData, reviewsData, profileData, notificationsData] = await Promise.all([
