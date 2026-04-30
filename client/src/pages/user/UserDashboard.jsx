@@ -739,6 +739,13 @@ export default function UserDashboard() {
     }
   }, [location.state, location.search]);
 
+  // Re-fetch reviews when activeTab changes to Reviews or when filter changes
+  useEffect(() => {
+    if (activeTab === 'Reviews') {
+      fetchMyReviews();
+    }
+  }, [activeTab, rejectedReviewsFilter]);
+
   const fetchData = async () => {
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
@@ -1443,7 +1450,7 @@ export default function UserDashboard() {
           <div
             key={item.id}
             className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => { setActiveTab(item.id); setIsAiPlanningActive(false); }}
+            onClick={() => { setActiveTab(item.id); setIsAiPlanningActive(false); if (item.id === 'Reviews') fetchMyReviews(); }}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
             <span className="nav-label">{item.label}</span>
@@ -1707,7 +1714,7 @@ export default function UserDashboard() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-            
+
             {/* Vehicle & Allocation */}
             <div style={{ background: 'white', padding: '40px', borderRadius: '40px', border: '1px solid var(--outline-variant)' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1953,7 +1960,7 @@ export default function UserDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             className={`toggle-btn ${rejectedReviewsFilter ? '' : 'active'}`}
-            onClick={() => setRejectedReviewsFilter(false)}
+            onClick={() => { setRejectedReviewsFilter(false); fetchMyReviews(); }}
           >
             All Reviews
           </button>
@@ -1978,12 +1985,12 @@ export default function UserDashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '32px' }}>
         {myReviews.map(review => (
-          <div key={review.id} style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid var(--outline-variant)', position: 'relative' }}>
+          <div key={review.id} style={{ background: 'white', padding: '32px', paddingTop: '50px', borderRadius: '32px', border: '1px solid var(--outline-variant)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
             {review.status && (
               <div style={{
                 position: 'absolute',
-                top: '20px',
-                right: '20px',
+                top: '16px',
+                right: '16px',
                 padding: '6px 16px',
                 borderRadius: '50px',
                 fontSize: '0.75rem',
@@ -1995,30 +2002,38 @@ export default function UserDashboard() {
                 {review.status}
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
-              <div style={{ color: 'var(--tertiary)', fontSize: '1.2rem' }}>
-                {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
+                <div style={{ color: 'var(--tertiary)', fontSize: '1.2rem' }}>
+                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                </div>
                 <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(review.createdAt).toLocaleDateString()}</span>
-                {review.user_id === user.id && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => openEditReview(review)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#64748b', opacity: 0.8, transition: '0.2s', padding: '4px', borderRadius: '50%', ':hover': { opacity: 1, background: 'var(--surface-container-high)' } }} title="Edit Review">
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
-                    </button>
-                    <button onClick={() => handleDeleteReview(review.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#ef4444', opacity: 0.8, transition: '0.2s', padding: '4px', borderRadius: '50%', ':hover': { opacity: 1, background: 'rgba(239, 68, 68, 0.1)' } }} title="Delete Review">
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
-                    </button>
-                  </div>
-                )}
+                </div>
+              <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '12px' }}>
+                {review.Driver ? `Driver: ${review.Driver.name}` : review.Destination ? `Place: ${review.Destination.name}` : review.trip_id ? `Trip Code: #${review.trip_id}` : 'Island Experience'}
               </div>
+              <p style={{ fontSize: '0.95rem', color: '#64748b', lineHeight: 1.6, fontStyle: 'italic' }}>
+                "{review.comment}"
+              </p>
             </div>
-            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '12px' }}>
-              {review.Driver ? `Driver: ${review.Driver.name}` : review.Destination ? `Place: ${review.Destination.name}` : review.trip_id ? `Trip Code: #${review.trip_id}` : 'Island Experience'}
-            </div>
-            <p style={{ fontSize: '0.95rem', color: '#64748b', lineHeight: 1.6, fontStyle: 'italic' }}>
-              "{review.comment}"
-            </p>
+            {review.user_id === user.id && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--outline-variant)' }}>
+                <button onClick={() => openEditReview(review)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', opacity: 0.8, transition: '0.2s', padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 500 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'var(--surface-container-high)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.background = 'none'; }}
+                  title="Edit Review">
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                  Edit
+                </button>
+                <button onClick={() => handleDeleteReview(review.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#ef4444', opacity: 0.8, transition: '0.2s', padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 500 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.8'; e.currentTarget.style.background = 'none'; }}
+                  title="Delete Review">
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {myReviews.length === 0 && (
@@ -2790,7 +2805,7 @@ export default function UserDashboard() {
                       if (!hasReviewNotifications && upcoming.length === 0) {
                         return <div style={{ padding: '32px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>No notifications at the moment</div>;
                       }
-                      
+
                       const allNotifications = [
                         ...notifications.filter(n => n.type === 'review_rejected').map(n => ({ ...n, notificationType: 'review' })),
                         ...upcoming.map(t => ({ ...t, notificationType: 'trip' }))
