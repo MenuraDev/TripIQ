@@ -75,13 +75,27 @@ const createReview = async (req, res) => {
 // @access  Tourist
 const getMyReviews = async (req, res) => {
     try {
+        const { status, sortBy } = req.query;
+
+        const whereClause = { user_id: req.user.id };
+        if (status) {
+            whereClause.status = status;
+        }
+
+        const orderClause = [];
+        if (sortBy === 'updatedAt') {
+            orderClause.push(['updatedAt', 'DESC']);
+        } else {
+            orderClause.push(['createdAt', 'DESC']);
+        }
+
         const reviews = await Review.findAll({
-            where: { user_id: req.user.id },
+            where: whereClause,
             include: [
                 { model: Driver, attributes: ['name'] },
                 { model: Destination, attributes: ['name'] }
             ],
-            order: [['createdAt', 'DESC']]
+            order: orderClause
         });
         res.json(reviews);
     } catch (error) {

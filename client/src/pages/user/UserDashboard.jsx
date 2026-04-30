@@ -638,6 +638,7 @@ export default function UserDashboard() {
   const [paymentToggle, setPaymentToggle] = useState('Saved Drafts');
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
+  const [rejectedReviewsFilter, setRejectedReviewsFilter] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewFormData, setReviewFormData] = useState({ type: 'Trip', targetId: '', rating: 5, comment: '' });
   const [editingReviewId, setEditingReviewId] = useState(null);
@@ -741,13 +742,17 @@ export default function UserDashboard() {
   const fetchData = async () => {
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
+      const reviewsQuery = rejectedReviewsFilter
+        ? 'http://localhost:5000/api/reviews/my?status=rejected&sortBy=updatedAt'
+        : 'http://localhost:5000/api/reviews/my?sortBy=updatedAt';
+
       const [tripsRes, favsRes, allDestsRes, vehiclesRes, paymentsRes, reviewsRes, profileRes, notificationsRes] = await Promise.all([
         fetch('http://localhost:5000/api/trips', { headers }),
         fetch('http://localhost:5000/api/destinations/favorites', { headers }),
         fetch('http://localhost:5000/api/destinations'),
         fetch('http://localhost:5000/api/vehicles/all'),
         fetch('http://localhost:5000/api/payments/my', { headers }),
-        fetch('http://localhost:5000/api/reviews/my', { headers }),
+        fetch(reviewsQuery, { headers }),
         fetch('http://localhost:5000/api/users/profile', { headers }),
         fetch('http://localhost:5000/api/notifications', { headers })
       ]);
@@ -1335,7 +1340,11 @@ export default function UserDashboard() {
 
   const fetchMyReviews = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/reviews/my', {
+      const query = rejectedReviewsFilter
+        ? 'http://localhost:5000/api/reviews/my?status=rejected&sortBy=updatedAt'
+        : 'http://localhost:5000/api/reviews/my?sortBy=updatedAt';
+
+      const res = await fetch(query, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.ok) setMyReviews(await res.json());
@@ -1941,21 +1950,51 @@ export default function UserDashboard() {
           <h1 className="welcome-title">Experiences</h1>
           <p className="subheading">Your stories and feedback from the road.</p>
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => {
-            setEditingReviewId(null);
-            setReviewFormData({ type: 'Trip', targetId: '', rating: 5, comment: '' });
-            setIsReviewModalOpen(true);
-          }}
-        >
-          Write a Review
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            className={`toggle-btn ${rejectedReviewsFilter ? '' : 'active'}`}
+            onClick={() => setRejectedReviewsFilter(false)}
+          >
+            All Reviews
+          </button>
+          <button
+            className={`toggle-btn ${rejectedReviewsFilter ? 'active' : ''}`}
+            onClick={() => { setRejectedReviewsFilter(true); fetchMyReviews(); }}
+          >
+            Rejected Reviews
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setEditingReviewId(null);
+              setReviewFormData({ type: 'Trip', targetId: '', rating: 5, comment: '' });
+              setIsReviewModalOpen(true);
+            }}
+          >
+            Write a Review
+          </button>
+        </div>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '32px' }}>
         {myReviews.map(review => (
-          <div key={review.id} style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid var(--outline-variant)' }}>
+          <div key={review.id} style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid var(--outline-variant)', position: 'relative' }}>
+            {review.status && (
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                padding: '6px 16px',
+                borderRadius: '50px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                background: review.status === 'accepted' ? '#dcfce7' : review.status === 'rejected' ? '#fee2e2' : '#fef3c7',
+                color: review.status === 'accepted' ? '#166534' : review.status === 'rejected' ? '#991b1b' : '#92400e'
+              }}>
+                {review.status}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
               <div style={{ color: 'var(--tertiary)', fontSize: '1.2rem' }}>
                 {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
@@ -1985,7 +2024,11 @@ export default function UserDashboard() {
         {myReviews.length === 0 && (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '120px', background: 'white', borderRadius: '40px', color: '#64748b' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '4rem', marginBottom: '20px', opacity: 0.1 }}>rate_review</span>
-            <p style={{ fontWeight: 600 }}>You haven't shared any reviews yet.</p>
+            <p style={{ fontWeight: 600 }}>
+              {rejectedReviewsFilter
+                ? "You don't have any rejected reviews."
+                : "You haven't shared any reviews yet."}
+            </p>
           </div>
         )}
       </div>
