@@ -73,6 +73,12 @@ Notification.belongsTo(User, { foreignKey: 'user_id' });
 
 
 const syncDB = async () => {
+    // Skip if DISABLE_SYNC is true
+    if (process.env.DISABLE_SYNC === 'true') {
+        console.log('⚠️ Database sync is disabled. Skipping synchronization...');
+        return;
+    }
+    
     try {
         // alter: true updates the DB schema to match the models without dropping data
         await sequelize.sync({ alter: true });
